@@ -6,7 +6,6 @@
 <title>Chivalry Legion High Scores</title>
 <style>
 body { font-family: Arial,sans-serif; background:#000; color:#fff; margin:0; padding:20px; }
-h1 { text-align:center; color:orange; margin-bottom:10px; }
 .tabs { display:flex; justify-content:center; gap:5px; margin-bottom:15px; }
 .tab-btn { padding:8px 15px; background:#111; border:none; color:#fff; cursor:pointer; border-radius:5px; }
 .tab-btn.active { background:orange; color:#000; font-weight:bold; }
@@ -31,14 +30,14 @@ h1 { text-align:center; color:orange; margin-bottom:10px; }
 </head>
 <body>
 
-<h1>Chivalry Legion High Scores</h1>
 <img src="https://i.imgur.com/OU2IAhu.png" alt="Clan Logo" style="display:block;margin:0 auto 10px auto; max-width:150px;">
+
 <div class="tabs">
   <button class="tab-btn active" data-tab="mains">Mains</button>
+  <button class="tab-btn" data-tab="meds">Meds</button>
   <button class="tab-btn" data-tab="ironman">Ironman</button>
   <button class="tab-btn" data-tab="hcim">HCIM</button>
   <button class="tab-btn" data-tab="uim">UIM</button>
-  <button class="tab-btn" data-tab="meds">Meds</button>
 </div>
 
 <div class="container">
@@ -97,6 +96,10 @@ const TABS = {
     { name: 'Big Mac luvr', nickname:'Mac', color:'#FF2900' },
     { name: '777 Hit Man', nickname:'HitMan', color:'#FF00E1' }
   ],
+  meds: [
+    { name: 'MedPlayer1', nickname:'MP1', color:'#003CFF' },
+    { name: 'MedPlayer2', nickname:'MP2', color:'#00BFFF' }
+  ],
   ironman: [
     { name: 'IronGuy1', nickname:'IG1', color:'#00FF91' },
     { name: 'IronLady', nickname:'ILady', color:'#FFF12E' }
@@ -106,15 +109,11 @@ const TABS = {
   ],
   uim: [
     { name: 'UltimateU', nickname:'UU', color:'#A30090' }
-  ],
-  meds: [
-    { name: 'MedPlayer1', nickname:'MP1', color:'#003CFF' },
-    { name: 'MedPlayer2', nickname:'MP2', color:'#00BFFF' }
   ]
 };
 
-const SKILLS = ['overall','attack','strength','defence','hitpoints','ranged','prayer','magic'];
-const SKILL_ICONS = { attack:'⚔️', strength:'💪', defence:'🛡️', ranged:'🏹', magic:'✨', prayer:'🙏', hitpoints:'❤️', combat:'⚔️'};
+const SKILLS = ['overall','attack','strength','defence','hitpoints','ranged','prayer','magic','cooking','woodcutting','fletching','fishing','firemaking','crafting','smithing','mining','herblore','agility','thieving','slayer','farming','runecraft','hunter','construction','sailing'];
+const SKILL_ICONS = { attack:'⚔️', strength:'💪', defence:'🛡️', ranged:'🏹', magic:'✨', prayer:'🙏', hitpoints:'❤️', combat:'⚔️', cooking:'🍳', woodcutting:'🪓', fletching:'🏹', fishing:'🎣', firemaking:'🔥', crafting:'🧵', smithing:'🔨', mining:'⛏️', herblore:'🌿', agility:'🏃', thieving:'🗝️', slayer:'👹', farming:'🌾', runecraft:'📜', hunter:'🏹', construction:'🏠', sailing:'⛵'};
 
 let currentTab = 'mains';
 let playerStats = {};
@@ -129,10 +128,8 @@ function calculateCombat(stats){
 }
 
 async function fetchPlayer(playerName){
-  const urls = [
-    'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=' + playerName)
-  ];
-  for(const url of urls){
+  const url='https://api.allorigins.win/raw?url=' + encodeURIComponent('https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=' + playerName);
+  while(true){
     try{
       const res = await fetch(url);
       if(!res.ok) throw new Error('HTTP '+res.status);
@@ -148,9 +145,8 @@ async function fetchPlayer(playerName){
       stats.overall={level:lines[0]?.split(',')[1]?parseInt(lines[0].split(',')[1],10):0};
       playerStats[playerName]=stats;
       return;
-    }catch(e){ console.warn('Failed fetch '+playerName,e); }
+    }catch(e){ console.warn('Retrying fetch '+playerName); await new Promise(r=>setTimeout(r,1000)); }
   }
-  playerStats[playerName]={error:true};
 }
 
 async function loadTab(tab){
@@ -237,7 +233,7 @@ function showTooltip(e,playerName,stats){
   if(stats.error) html+='Name not found';
   else {
     for(const skill of SKILLS){
-      html+=`${SKILL_ICONS[skill]||''} ${skill.charAt(0).toUpperCase()+skill.slice(1)}: ${stats[skill].level} (XP: ${stats[skill].xp})<br>`;
+      html+=`${SKILL_ICONS[skill]||''} ${skill.charAt(0).toUpperCase()+skill.slice(1)}: ${stats[skill]?.level||0} (XP: ${stats[skill]?.xp||0})<br>`;
     }
     html+=`Combat: ${stats.combat}<br>Total: ${stats.overall?.level||0}`;
   }
