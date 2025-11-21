@@ -27,15 +27,15 @@
     }
 
     .controls {
-      margin-bottom: 20px;
+      margin-bottom: 10px;
       display: flex;
-      gap: 10px;
+      gap: 5px;
       flex-wrap: wrap;
     }
 
     .controls select, .controls button {
-      padding: 8px 12px;
-      font-size: 14px;
+      padding: 4px 8px;
+      font-size: 12px;
       background: #222;
       color: #fff;
       border: 1px solid #444;
@@ -63,6 +63,14 @@
       background: #222;
       color: #fff;
       font-weight: bold;
+      position: relative;
+    }
+
+    .stats-table th .sort-controls {
+      display: flex;
+      gap: 2px;
+      justify-content: center;
+      margin-top: 4px;
     }
 
     .stats-table td {
@@ -89,80 +97,89 @@
       color: #ff4d4d;
       font-weight: bold;
     }
+
+    th img {
+      width: 20px;
+      height: 20px;
+      vertical-align: middle;
+      margin-right: 4px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>OSRS Player Stats</h1>
 
-    <div class="controls">
-      <label>
-        Sort by:  
-        <select id="sortSelect">
-          <option value="total">Total Level</option>
-          <option value="combat">Combat</option>
-          <option value="name">Name</option>
-        </select>
-      </label>
-
-      <label>
-        Order:  
-        <select id="orderSelect">
-          <option value="desc">High → Low</option>
-          <option value="asc">Low → High</option>
-        </select>
-      </label>
-
-      <label>
-        View:  
-        <select id="viewSelect">
-          <option value="all">All Stats</option>
-          <option value="combat">Combat Only</option>
-          <option value="total">Total Only</option>
-          <optgroup label="Single Skill">
-            <option value="attack">Attack</option>
-            <option value="strength">Strength</option>
-            <option value="defence">Defence</option>
-            <option value="ranged">Ranged</option>
-            <option value="magic">Magic</option>
-            <option value="prayer">Prayer</option>
-            <option value="hitpoints">Hitpoints</option>
-            <option value="mining">Mining</option>
-            <option value="fishing">Fishing</option>
-            <option value="woodcutting">Woodcutting</option>
-            <option value="farming">Farming</option>
-            <option value="hunter">Hunter</option>
-            <option value="crafting">Crafting</option>
-            <option value="smithing">Smithing</option>
-            <option value="fletching">Fletching</option>
-            <option value="herblore">Herblore</option>
-            <option value="cooking">Cooking</option>
-            <option value="firemaking">Firemaking</option>
-            <option value="construction">Construction</option>
-            <option value="agility">Agility</option>
-            <option value="thieving">Thieving</option>
-            <option value="slayer">Slayer</option>
-            <option value="runecraft">Runecraft</option>
-          </optgroup>
-        </select>
-      </label>
-
-      <button id="refreshBtn">Refresh Stats</button>
-    </div>
-
     <table class="stats-table" id="statsTable">
       <thead id="statsTableHead">
         <tr>
           <th>Player</th>
-          <th>Attack</th>
-          <th>Strength</th>
-          <th>Defence</th>
-          <th>Ranged</th>
-          <th>Magic</th>
-          <th>Prayer</th>
-          <th>Hitpoints</th>
-          <th>Combat</th>
-          <th>Total Level</th>
+          <th>⚔️ Attack</th>
+          <th>💪 Strength</th>
+          <th>🛡️ Defence</th>
+          <th>🏹 Ranged</th>
+          <th>✨ Magic</th>
+          <th>🙏 Prayer</th>
+          <th>❤️ Hitpoints</th>
+          <th>⚔️ Combat</th>
+          <th>🏆 Total Level</th>
+        </tr>
+        <tr class="controls">
+          <th></th>
+          <th>
+            <select data-skill="attack" class="columnSort">
+              <option value="desc">High → Low</option>
+              <option value="asc">Low → High</option>
+            </select>
+          </th>
+          <th>
+            <select data-skill="strength" class="columnSort">
+              <option value="desc">High → Low</option>
+              <option value="asc">Low → High</option>
+            </select>
+          </th>
+          <th>
+            <select data-skill="defence" class="columnSort">
+              <option value="desc">High → Low</option>
+              <option value="asc">Low → High</option>
+            </select>
+          </th>
+          <th>
+            <select data-skill="ranged" class="columnSort">
+              <option value="desc">High → Low</option>
+              <option value="asc">Low → High</option>
+            </select>
+          </th>
+          <th>
+            <select data-skill="magic" class="columnSort">
+              <option value="desc">High → Low</option>
+              <option value="asc">Low → High</option>
+            </select>
+          </th>
+          <th>
+            <select data-skill="prayer" class="columnSort">
+              <option value="desc">High → Low</option>
+              <option value="asc">Low → High</option>
+            </select>
+          </th>
+          <th>
+            <select data-skill="hitpoints" class="columnSort">
+              <option value="desc">High → Low</option>
+              <option value="asc">Low → High</option>
+            </select>
+          </th>
+          <th>
+            <select data-skill="combat" class="columnSort">
+              <option value="desc">High → Low</option>
+              <option value="asc">Low → High</option>
+            </select>
+          </th>
+          <th>
+            <select data-skill="total" class="columnSort">
+              <option value="desc">High → Low</option>
+              <option value="asc">Low → High</option>
+            </select>
+          </th>
         </tr>
       </thead>
       <tbody id="statsTableBody">
@@ -251,12 +268,10 @@
           va = sa.combat || 0;
           vb = sb.combat || 0;
         } else if (sortKey === 'name') {
-          return order === 'asc'
-            ? a.name.localeCompare(b.name)
-            : b.name.localeCompare(a.name);
+          return a.name.localeCompare(b.name);
         } else {
-          va = sa.overall?.level || 0;
-          vb = sb.overall?.level || 0;
+          va = sa[sortKey]?.level || 0;
+          vb = sb[sortKey]?.level || 0;
         }
 
         return order === 'asc' ? va - vb : vb - va;
@@ -265,14 +280,17 @@
 
     function renderTable() {
       const tbody = document.getElementById('statsTableBody');
-      const view = document.getElementById('viewSelect').value;
-      const sortBy = document.getElementById('sortSelect').value;
-      const order = document.getElementById('orderSelect').value;
+      const columnSorts = document.querySelectorAll('.columnSort');
+      let sortedPlayers = PLAYERS;
 
-      const sorted = sortPlayers(PLAYERS, sortBy, order);
+      columnSorts.forEach(select => {
+        const skill = select.dataset.skill;
+        const order = select.value;
+        sortedPlayers = sortPlayers(sortedPlayers, skill, order);
+      });
 
       let html = '';
-      for (const p of sorted) {
+      for (const p of sortedPlayers) {
         const s = playerStats[p.name];
         if (!s) {
           html += `<tr><td colspan="10" class="loading">Loading ${p.name}…</td></tr>`;
@@ -284,28 +302,13 @@
           continue;
         }
 
-        const cells = [];
-        if (view === 'all') {
-          cells.push(
-            s.attack?.level, s.strength?.level, s.defence?.level,
-            s.ranged?.level, s.magic?.level, s.prayer?.level,
-            s.hitpoints?.level, s.combat, s.overall?.level
-          );
-        } else if (view === 'combat') {
-          cells.push(
-            s.attack?.level, s.strength?.level, s.defence?.level,
-            s.ranged?.level, s.magic?.level, s.prayer?.level,
-            s.hitpoints?.level, s.combat, s.overall?.level
-          );
-        } else if (view === 'total') {
-          cells.push(s.overall?.level, s.overall?.xp);
-        } else {
-          const skill = view;
-          const data = s[skill] || { level: '-', xp: '-', rank: '-' };
-          cells.push(data.level, data.xp, data.rank);
-        }
+        const cells = [
+          s.attack?.level, s.strength?.level, s.defence?.level,
+          s.ranged?.level, s.magic?.level, s.prayer?.level,
+          s.hitpoints?.level, s.combat, s.overall?.level
+        ];
 
-        html += `<tr style="color:${p.color}">
+        html += `<tr>
           <td class="player-name" style="color:${p.color}">${p.name}</td>
           ${cells.map(c => `<td>${c !== undefined ? c : '-'}</td>`).join('')}
         </tr>`;
@@ -314,10 +317,9 @@
       tbody.innerHTML = html;
     }
 
-    document.getElementById('sortSelect').addEventListener('change', renderTable);
-    document.getElementById('orderSelect').addEventListener('change', renderTable);
-    document.getElementById('viewSelect').addEventListener('change', renderTable);
-    document.getElementById('refreshBtn').addEventListener('click', loadAllPlayers);
+    document.querySelectorAll('.columnSort').forEach(select => {
+      select.addEventListener('change', renderTable);
+    });
 
     window.addEventListener('load', loadAllPlayers);
   </script>
