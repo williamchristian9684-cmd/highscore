@@ -9,8 +9,8 @@ body {
   font-family: Arial, sans-serif;
   background: #000;
   color: #fff;
-  margin: 0;
-  padding: 20px;
+  margin:0;
+  padding:20px;
 }
 
 h1 {
@@ -22,41 +22,46 @@ h1 {
 .container {
   display: flex;
   gap: 20px;
-  max-width: 1600px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
-/* Player Table */
 .stats-table {
   width: 100%;
   border-collapse: collapse;
 }
+
 .stats-table th, .stats-table td {
   border: 1px solid #444;
   padding: 8px;
   text-align: center;
 }
+
 .stats-table th {
   background: #222;
   font-weight: bold;
   color: #fff;
 }
+
 .stats-table td {
   background: #111;
   color: #eee;
 }
+
 .stats-table tr:nth-child(even) td {
   background: #1a1a1a;
 }
+
 .stats-table tbody tr:hover {
   background: #333 !important;
 }
+
 .player-name {
   font-weight: bold;
   cursor:pointer;
 }
 
-/* Tooltip */
+/* tooltip */
 .tooltip {
   display: none;
   position: fixed;
@@ -73,7 +78,6 @@ h1 {
   white-space: nowrap;
 }
 
-/* Sort icons */
 .sort-icons {
   display: inline-block;
   margin-left: 5px;
@@ -81,13 +85,13 @@ h1 {
   font-size: 12px;
   vertical-align: middle;
 }
+
 .sort-icons span {
   display: block;
   line-height: 10px;
 }
 
-/* Side boxes */
-.side-box {
+.average-box {
   width: 250px;
   background: #111;
   padding: 15px;
@@ -96,16 +100,18 @@ h1 {
   color: #fff;
   font-size: 14px;
 }
-.side-box h2 {
+
+.average-box h2 {
   text-align:center;
   color: orange;
   margin-bottom:10px;
 }
 
-/* Ranks Legend */
-#ranksLegend div {
-  font-weight: bold;
-  margin-bottom:5px;
+#loadingOverlay {
+  position: fixed; top:0; left:0; right:0; bottom:0;
+  background:#000; color:#fff; display:flex;
+  align-items:center; justify-content:center; font-size:24px;
+  z-index:1000;
 }
 </style>
 </head>
@@ -114,12 +120,6 @@ h1 {
 <h1>Chivalry Legion High Scores</h1>
 
 <div class="container">
-  <!-- Left: Ranks Legend -->
-  <div class="side-box" id="ranksLegend">
-    <h2>Ranks Legend</h2>
-  </div>
-
-  <!-- Center: Player Table -->
   <table class="stats-table" id="statsTable">
     <thead>
       <tr>
@@ -135,19 +135,17 @@ h1 {
         <th>Total Level <span class="sort-icons" data-skill="total"><span>▲</span><span>▼</span></span></th>
       </tr>
     </thead>
-    <tbody id="statsTableBody">
-      <tr><td colspan="10" class="loading">Loading...</td></tr>
-    </tbody>
+    <tbody id="statsTableBody"></tbody>
   </table>
 
-  <!-- Right: Average Stats -->
-  <div class="side-box" id="averageBox">
+  <div class="average-box" id="averageBox">
     <h2>Average Stats</h2>
     <div id="averageContent">Loading...</div>
   </div>
 </div>
 
 <div class="tooltip" id="tooltip"></div>
+<div id="loadingOverlay">Loading player stats...</div>
 
 <script>
 const PLAYERS = [
@@ -157,25 +155,14 @@ const PLAYERS = [
   { name: 'AEST NFS', color: '#00FF91' },
   { name: 'Thisthat', color: '#ADA653' },
   { name: 'JoshD', color: '#A30090' },
-  { name: 'Cutyourgrass', color: '#A30090' },
-];
-
-const RANKS = [
-  { name:'Leader', color:'#FF2900' },
-  { name:'Council', color:'#FF00E1' },
-  { name:'Captain', color:'#00FF91' },
-  { name:'Legend', color:'#FFF12E' },
-  { name:'Elder', color:'#ADA653' },
-  { name:'Old School', color:'#A30090' },
-  { name:'Senior', color:'#0E00A3' },
-  { name:'Member', color:'#003CFF' },
-  { name:'Trial', color:'#00BFFF' },
-  { name:'Retired', color:'#B6B6B6' },
+  { name: 'Cutyourgrass', color: '#A30090' },  
 ];
 
 const SKILLS = [
-  'overall','attack','defence','strength','hitpoints','ranged','prayer','magic','cooking','woodcutting',
-  'fletching','fishing','firemaking','crafting','smithing','mining','herblore','agility','thieving','slayer',
+  'overall','attack','defence','strength','hitpoints',
+  'ranged','prayer','magic','cooking','woodcutting',
+  'fletching','fishing','firemaking','crafting','smithing',
+  'mining','herblore','agility','thieving','slayer',
   'farming','runecraft','hunter','construction','sailing'
 ];
 
@@ -192,15 +179,6 @@ const SKILL_ICONS = {
   farming:'🌾', runecraft:'📜', hunter:'🏹', construction:'🏠',
   sailing:'⛵'
 };
-
-// Initialize Ranks Legend
-const ranksDiv = document.getElementById('ranksLegend');
-RANKS.forEach(r => {
-  const d = document.createElement('div');
-  d.style.color = r.color;
-  d.textContent = r.name;
-  ranksDiv.appendChild(d);
-});
 
 function calculateCombat(stats) {
   const a = stats.attack?.level||1;
@@ -223,7 +201,7 @@ async function fetchPlayer(playerName){
     'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent('https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=' + playerName)
   ];
   for(const url of urls){
-    try{
+    try {
       const res = await fetch(url);
       if(!res.ok) throw new Error('HTTP '+res.status);
       const txt = await res.text();
@@ -232,21 +210,27 @@ async function fetchPlayer(playerName){
       for(let i=0;i<lines.length && i<SKILLS.length;i++){
         const parts = lines[i].split(',');
         if(parts.length!==3) continue;
-        stats[SKILLS[i]]={ rank:parseInt(parts[0],10), level:parseInt(parts[1],10), xp:parseInt(parts[2],10) };
+        stats[SKILLS[i]] = { rank:parseInt(parts[0],10), level:parseInt(parts[1],10), xp:parseInt(parts[2],10) };
       }
       stats.combat = calculateCombat(stats);
       playerStats[playerName] = stats;
       return;
-    }catch(err){ console.warn('Failed fetch for '+playerName+' with '+url); }
+    } catch(err){
+      console.warn('Failed fetch for '+playerName+' with '+url);
+    }
   }
-  playerStats[playerName]={error:true};
+  playerStats[playerName] = { error:true };
 }
 
 async function loadAllPlayers(){
   playerStats={};
-  await Promise.all(PLAYERS.map(p=>fetchPlayer(p.name)));
+  for(const p of PLAYERS){
+    await fetchPlayer(p.name);
+    await new Promise(r => setTimeout(r, 100)); // small delay
+  }
   renderTable();
   renderAverageBox();
+  document.getElementById('loadingOverlay').style.display='none';
 }
 
 function sortPlayers(arr, key, order){
@@ -256,9 +240,9 @@ function sortPlayers(arr, key, order){
     if(!sb||sb.error) return -1;
     if(key==='name') return order==='asc'? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
     let va,vb;
-    if(key==='total') { va=sa.overall?.level||0; vb=sb.overall?.level||0; }
-    else if(key==='combat') { va=sa.combat||0; vb=sb.combat||0; }
-    else { va=sa[key]?.level||0; vb=sb[key]?.level||0; }
+    if(key==='total'){ va=sa.overall?.level||0; vb=sb.overall?.level||0; }
+    else if(key==='combat'){ va=sa.combat||0; vb=sb.combat||0; }
+    else{ va=sa[key]?.level||0; vb=sb[key]?.level||0; }
     return order==='asc'? va-vb : vb-va;
   });
 }
@@ -269,8 +253,8 @@ function renderTable(){
   let html='';
   for(const p of sorted){
     const s = playerStats[p.name];
-    if(!s){ html+=`<tr><td colspan="10" class="loading">Loading ${p.name}…</td></tr>`; continue; }
-    if(s.error){ html+=`<tr><td class="player-name" style="color:${p.color}">${p.name}</td><td colspan="9" class="error">Name not found</td></tr>`; continue; }
+    if(!s){ html+=`<tr><td colspan="10">Loading ${p.name}…</td></tr>`; continue; }
+    if(s.error){ html+=`<tr><td class="player-name" style="color:${p.color}">${p.name}</td><td colspan="9">Name not found</td></tr>`; continue; }
     const cells = [
       s.attack?.level, s.strength?.level, s.defence?.level,
       s.ranged?.level, s.magic?.level, s.prayer?.level,
@@ -319,45 +303,41 @@ function attachTooltip(){
 }
 
 document.querySelectorAll('.sort-icons').forEach(icon=>{
-  const skill = icon.dataset.skill;
-  const spans = icon.querySelectorAll('span');
-  spans[0].addEventListener('click', ()=>{
-    currentSort = { skill, order:'asc' };
-    renderTable();
-    renderAverageBox();
-  });
-  spans[1].addEventListener('click', ()=>{
-    currentSort = { skill, order:'desc' };
-    renderTable();
-    renderAverageBox();
-  });
+  const skill=icon.dataset.skill;
+  const spans=icon.querySelectorAll('span');
+  spans[0].addEventListener('click', ()=>{ currentSort={skill,order:'asc'}; renderTable(); });
+  spans[1].addEventListener('click', ()=>{ currentSort={skill,order:'desc'}; renderTable(); });
 });
 
 function renderAverageBox(){
   const container=document.getElementById('averageContent');
   const members = PLAYERS.length;
-  let combatSum=0, totalSum=0;
-  let skillSums = {};
-  SKILLS.forEach(s=>{ if(s!=='overall') skillSums[s]=0; });
-  let counted=0;
+  const totalStats = {};
+  SKILLS.forEach(skill=>{
+    if(skill==='overall') return;
+    totalStats[skill]=0;
+  });
+  totalStats.combat=0;
+  totalStats.total=0;
 
+  let counted=0;
   for(const p of PLAYERS){
     const s=playerStats[p.name];
     if(!s||s.error) continue;
     counted++;
-    combatSum += s.combat||0;
-    totalSum += s.overall?.level||0;
-    for(const skill of Object.keys(skillSums)){
-      if(skill==='combat') continue;
-      skillSums[skill] += s[skill]?.level||0;
+    for(const skill of Object.keys(totalStats)){
+      if(skill==='total') totalStats[skill]+=s.overall?.level||0;
+      else if(skill==='combat') totalStats[skill]+=s.combat||0;
+      else totalStats[skill]+=s[skill]?.level||0;
     }
   }
 
-  let html = `Number of members: ${members}<br>Average Combat: ${counted? Math.round(combatSum/counted):0}<br>Average Total Level: ${counted? Math.round(totalSum/counted):0}<br>`;
-  for(const skill of Object.keys(skillSums)){
-    html += `${SKILL_ICONS[skill]||''} ${skill.charAt(0).toUpperCase()+skill.slice(1)}: ${counted? Math.round(skillSums[skill]/counted):0}<br>`;
+  let html = `Number of members: ${members}<br>`;
+  for(const skill of Object.keys(totalStats)){
+    const avg = counted? Math.round(totalStats[skill]/counted) : 0;
+    html += `${SKILL_ICONS[skill]||''} ${skill.charAt(0).toUpperCase()+skill.slice(1)}: ${avg}<br>`;
   }
-  container.innerHTML = html;
+  container.innerHTML=html;
 }
 
 window.addEventListener('load', loadAllPlayers);
