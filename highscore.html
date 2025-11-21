@@ -91,7 +91,7 @@ th img.skill-icon { width: 20px; height: 20px; vertical-align: middle; margin-ri
   border-radius: 6px;
   z-index: 100;
   font-size: 12px;
-  max-width: 220px;
+  max-width: 240px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.5);
 }
 .tooltip h4 {
@@ -157,7 +157,22 @@ const SKILLS = [
   {key:'ranged', icon:'https://oldschool.runescape.wiki/images/Ranged_icon.png'},
   {key:'prayer', icon:'https://oldschool.runescape.wiki/images/Prayer_icon.png'},
   {key:'magic', icon:'https://oldschool.runescape.wiki/images/Magic_icon.png'},
-  {key:'combat', icon:'https://oldschool.runescape.wiki/images/Combat_icon.png'},
+  {key:'cooking', icon:'https://oldschool.runescape.wiki/images/Cooking_icon.png'},
+  {key:'woodcutting', icon:'https://oldschool.runescape.wiki/images/Woodcutting_icon.png'},
+  {key:'fletching', icon:'https://oldschool.runescape.wiki/images/Fletching_icon.png'},
+  {key:'fishing', icon:'https://oldschool.runescape.wiki/images/Fishing_icon.png'},
+  {key:'firemaking', icon:'https://oldschool.runescape.wiki/images/Firemaking_icon.png'},
+  {key:'crafting', icon:'https://oldschool.runescape.wiki/images/Crafting_icon.png'},
+  {key:'smithing', icon:'https://oldschool.runescape.wiki/images/Smithing_icon.png'},
+  {key:'mining', icon:'https://oldschool.runescape.wiki/images/Mining_icon.png'},
+  {key:'herblore', icon:'https://oldschool.runescape.wiki/images/Herblore_icon.png'},
+  {key:'agility', icon:'https://oldschool.runescape.wiki/images/Agility_icon.png'},
+  {key:'thieving', icon:'https://oldschool.runescape.wiki/images/Thieving_icon.png'},
+  {key:'slayer', icon:'https://oldschool.runescape.wiki/images/Slayer_icon.png'},
+  {key:'farming', icon:'https://oldschool.runescape.wiki/images/Farming_icon.png'},
+  {key:'runecraft', icon:'https://oldschool.runescape.wiki/images/Runecraft_icon.png'},
+  {key:'hunter', icon:'https://oldschool.runescape.wiki/images/Hunter_icon.png'},
+  {key:'construction', icon:'https://oldschool.runescape.wiki/images/Construction_icon.png'},
 ];
 
 let playerStats = {};
@@ -187,11 +202,10 @@ async function fetchPlayer(playerName){
     const txt = await res.text();
     const lines = txt.trim().split('\n');
     const stats = {};
-    for(let i=0;i<lines.length;i++){
+    for(let i=0;i<lines.length && i<SKILLS.length;i++){
       const parts = lines[i].split(',');
       if(parts.length!==3) continue;
-      const skill = SKILLS.find(s => s.key===SKILLS[i]?.key)?.key || SKILLS[i]?.key;
-      stats[SKILLS[i]?.key || i] = {
+      stats[SKILLS[i].key] = {
         rank: parseInt(parts[0],10),
         level: parseInt(parts[1],10),
         xp: parseInt(parts[2],10)
@@ -266,8 +280,8 @@ function addTooltipEvents() {
 
       let content = `<h4>${name}</h4>`;
       SKILLS.forEach(skill => {
+        if(skill.key==='combat') return; // separate
         const lvl = stats[skill.key]?.level ?? '-';
-        if(skill.key==='combat') return;
         content += `<div class="stat-row"><div><img src="${skill.icon}" alt="${skill.key}">${skill.key.charAt(0).toUpperCase()+skill.key.slice(1)}</div><div>${lvl}</div></div>`;
       });
       content += `<div class="stat-row"><div><img src="https://oldschool.runescape.wiki/images/Combat_icon.png" alt="Combat">Combat</div><div>${stats.combat}</div></div>`;
@@ -276,8 +290,16 @@ function addTooltipEvents() {
       tooltip.style.display = 'block';
 
       const rect = td.getBoundingClientRect();
-      tooltip.style.top = (rect.bottom + window.scrollY + 5) + 'px';
-      tooltip.style.left = (rect.left + window.scrollX) + 'px';
+      const tooltipRect = tooltip.getBoundingClientRect();
+      let top = rect.bottom + window.scrollY + 5;
+      let left = rect.left + window.scrollX;
+
+      // Adjust if going off screen
+      if(left + tooltipRect.width > window.innerWidth) left = window.innerWidth - tooltipRect.width - 10;
+      if(top + tooltipRect.height > window.innerHeight + window.scrollY) top = rect.top + window.scrollY - tooltipRect.height - 5;
+
+      tooltip.style.top = top + 'px';
+      tooltip.style.left = left + 'px';
     });
     td.addEventListener('mouseleave', e => { tooltip.style.display='none'; });
   });
