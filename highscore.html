@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Chivalry Legion High Scores</title>
-
 <style>
 body {
   font-family: Arial, sans-serif;
@@ -13,522 +12,340 @@ body {
   margin:0;
   padding:20px;
 }
-
 h1 {
-  text-align:center;
-  color: orange;
-  margin-bottom: 20px;
-}
-
-/* Layout */
-.container {
-  display: flex;
-  gap: 20px;
-  max-width: 1650px;
-  margin: 0 auto;
-}
-
-.column {
-  background: #111;
-  border-radius: 8px;
-  padding: 15px;
-  border: 1px solid #444;
-  overflow-x:auto;
-}
-
-.column h2 {
   text-align:center;
   color: orange;
   margin-bottom: 10px;
 }
-
-.stats-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.stats-table th, .stats-table td {
-  border: 1px solid #444;
-  padding: 8px;
-  text-align: center;
-}
-
-.stats-table th {
-  background: #222;
-  font-weight: bold;
-  color: #fff;
-}
-
-.stats-table td {
-  background: #111;
-  color: #eee;
-}
-
-.stats-table tr:nth-child(even) td {
-  background: #1a1a1a;
-}
-
-.stats-table tbody tr:hover {
-  background: #333 !important;
-}
-
-.player-name {
-  font-weight: bold;
-  cursor:pointer;
-}
-
-/* Tooltip */
-.tooltip {
-  display: none;
-  position: fixed;
-  background: #222;
-  padding: 10px;
-  border-radius: 6px;
-  box-shadow: 0 0 10px rgba(255,255,255,0.3);
-  z-index: 999;
-  min-width: 220px;
-  max-height: 400px;
-  overflow-y: auto;
-  color: #fff;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-/* Sorting icons */
-.sort-icons {
-  display: inline-block;
-  margin-left: 5px;
-  cursor: pointer;
-  font-size: 12px;
-  vertical-align: middle;
-}
-.sort-icons span {
-  display: block;
-  line-height: 10px;
-}
-
-/* Legend */
-.legend-box div {
-  font-weight: bold;
-  margin: 6px 0;
-}
-
-/* Buttons */
-.refresh-btn,
-.clear-filter-btn,
-.clear-skill-btn {
+#clanLogo {
   display:block;
-  margin: 10px auto 10px auto;
-  padding: 6px 12px;
-  background: red;
-  color: #fff;
-  font-weight: bold;
+  margin:0 auto 20px auto;
+  width:100px;
+}
+.tabs {
+  display:flex;
+  justify-content:center;
+  margin-bottom:20px;
+  gap:10px;
+}
+.tab-btn {
+  padding:5px 15px;
+  cursor:pointer;
+  background:#222;
+  border:none;
+  border-radius:5px;
+  color:#fff;
+  font-weight:bold;
+}
+.tab-btn.active {
+  background:orange;
+  color:#000;
+}
+.tab-content { display:none; }
+.tab-content.active { display:flex; gap:20px; max-width:1600px; margin:0 auto; }
+.column {
+  background:#111;
+  border-radius:8px;
+  padding:15px;
+  border:1px solid #444;
+  overflow-x:auto;
+}
+.column h2 { text-align:center; color:orange; margin-bottom:10px; }
+.stats-table { width:100%; border-collapse: collapse; }
+.stats-table th, .stats-table td { border:1px solid #444; padding:8px; text-align:center; }
+.stats-table th { background:#222; font-weight:bold; color:#fff; cursor:pointer; }
+.stats-table td { background:#111; color:#eee; }
+.stats-table tr:nth-child(even) td { background:#1a1a1a; }
+.stats-table tbody tr:hover { background:#333 !important; }
+.player-name { font-weight:bold; cursor:pointer; }
+.tooltip {
+  display:none;
+  position:fixed;
+  background:#222;
+  padding:10px;
+  border-radius:6px;
+  box-shadow:0 0 10px rgba(255,255,255,0.3);
+  z-index:999;
+  min-width:220px;
+  max-height:400px;
+  overflow-y:auto;
+  color:#fff;
+  font-size:12px;
+  white-space:nowrap;
+}
+.sort-icons { display:inline-block; margin-left:5px; cursor:pointer; font-size:12px; vertical-align:middle; }
+.sort-icons span { display:block; line-height:10px; }
+.legend-box { width:200px; }
+.legend-box div { font-weight:bold; margin:5px 0; cursor:pointer; }
+.unfilter-btn {
+  display:block;
+  margin-top:10px;
+  padding:5px;
+  background:orange;
+  color:#000;
+  font-weight:bold;
   border:none;
   border-radius:5px;
   cursor:pointer;
 }
-
 .refresh-btn {
-  background: orange;
-  color:black;
+  display:block;
+  margin:10px auto 20px auto;
+  padding:5px 10px;
+  background:orange;
+  color:#000;
+  font-weight:bold;
+  border:none;
+  border-radius:5px;
+  cursor:pointer;
 }
-
 .loading { text-align:center; font-style:italic; color:#999; }
 .error { color:#ff4d4d; font-weight:bold; }
-
-/* Clan Logo */
-.clan-logo {
-  display:block;
-  margin:0 auto 20px auto;
-  width: 140px;
-}
+.clickable { cursor:pointer; text-decoration:underline; }
 </style>
 </head>
 <body>
 
-<img src="https://i.imgur.com/OU2IAhu.png" class="clan-logo">
-
 <h1>Chivalry Legion High Scores</h1>
-<button class="refresh-btn" onclick="loadAllPlayers()">Refresh</button>
+<img id="clanLogo" src="https://i.imgur.com/OU2IAhu.png" alt="Clan Logo">
 
-<div id="lastUpdated" style="text-align:center; margin-bottom:10px; color:#aaa;"></div>
-
-<div class="container">
-
-  <!-- LEFT COLUMN: RANK LEGEND -->
-  <div class="column" style="width:200px;">
-    <h2>Ranks Legend</h2>
-    <div data-rank="Leader" style="color:#FF2900;">Leader</div>
-    <div data-rank="Council" style="color:#FF00E1;">Council</div>
-    <div data-rank="Captain" style="color:#00FF91;">Captain</div>
-    <div data-rank="Legend" style="color:#FFF12E;">Legend</div>
-    <div data-rank="Elder" style="color:#ADA653;">Elder</div>
-    <div data-rank="Old School" style="color:#A30090;">Old School</div>
-    <div data-rank="Senior" style="color:#0E00A3;">Senior</div>
-    <div data-rank="Member" style="color:#003CFF;">Member</div>
-    <div data-rank="Trial" style="color:#00BFFF;">Trial</div>
-    <div data-rank="Retired" style="color:#B6B6B6;">Retired</div>
-
-    <button id="clearRankFilter" class="clear-filter-btn" style="display:none;">
-      Clear Rank Filter
-    </button>
-  </div>
-
-  <!-- MIDDLE COLUMN: PLAYER TABLE -->
-  <div class="column" style="flex:1;">
-    <table class="stats-table" id="statsTable">
-      <thead>
-        <tr>
-          <th>Player <span class="sort-icons" data-skill="name"><span>▲</span><span>▼</span></span></th>
-          <th>⚔️ Attack <span class="sort-icons" data-skill="attack"><span>▲</span><span>▼</span></span></th>
-          <th>💪 Strength <span class="sort-icons" data-skill="strength"><span>▲</span><span>▼</span></span></th>
-          <th>🛡️ Defence <span class="sort-icons" data-skill="defence"><span>▲</span><span>▼</span></span></th>
-          <th>🏹 Ranged <span class="sort-icons" data-skill="ranged"><span>▲</span><span>▼</span></span></th>
-          <th>✨ Magic <span class="sort-icons" data-skill="magic"><span>▲</span><span>▼</span></span></th>
-          <th>🙏 Prayer <span class="sort-icons" data-skill="prayer"><span>▲</span><span>▼</span></span></th>
-          <th>❤️ Hitpoints <span class="sort-icons" data-skill="hitpoints"><span>▲</span><span>▼</span></span></th>
-          <th>⚔️ Combat <span class="sort-icons" data-skill="combat"><span>▲</span><span>▼</span></span></th>
-          <th>Total <span class="sort-icons" data-skill="total"><span>▲</span><span>▼</span></span></th>
-        </tr>
-      </thead>
-      <tbody id="statsTableBody">
-        <tr><td colspan="10" class="loading">Loading...</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- RIGHT COLUMN: AVERAGE OR SKILL LEADERBOARD -->
-  <div class="column" style="width:280px;">
-    <h2 id="rightTitle">Average Stats</h2>
-    <div id="rightContent">Loading...</div>
-    <button id="clearSkillFilter" class="clear-skill-btn" style="display:none;">Clear Skill Filter</button>
-  </div>
-
+<div class="tabs">
+  <button class="tab-btn active" data-tab="mains">Mains</button>
+  <button class="tab-btn" data-tab="ironman">Ironman</button>
+  <button class="tab-btn" data-tab="hcim">HCIM</button>
+  <button class="tab-btn" data-tab="uim">UIM</button>
 </div>
+
+<!-- Refresh & last updated -->
+<button class="refresh-btn" onclick="loadAllTabs()">Refresh All Tabs</button>
+<div style="text-align:center; margin-bottom:20px;">Last Updated: <span id="lastUpdated">--</span></div>
+
+<!-- Tabs content -->
+<div id="mains" class="tab-content active"></div>
+<div id="ironman" class="tab-content"></div>
+<div id="hcim" class="tab-content"></div>
+<div id="uim" class="tab-content"></div>
 
 <div class="tooltip" id="tooltip"></div>
 
 <script>
-/* ============= PLAYER LIST (WITH OPTIONAL NICKNAMES) ============= */
-
-const PLAYERS = [
-  { name: 'G3ND3RB3ND3R', nickname:'Rare', color:'#FF2900', rank:'Leader' },
-  { name: 'Big Mac luvr', nickname:'Braden', color:'#FF2900', rank:'Leader' },
-  { name: '777 Hit Man', nickname:'Uube', color:'#FF00E1', rank:'Council' },
-  { name: 'AEST NFS', nickname:'Kaly', color:'#00FF91', rank:'Captain' },
-  { name: 'Kranky Kraut', nickname:'Hayden', color:'#00FF91', rank:'Captain' },
-  { name: 'Roo Rider', nickname:'Joog', color:'#FFF12E', rank:'Legend' },
-  { name: 'Purewax', nickname:'Wax', color:'#ADA653', rank:'Elder' },
-  { name: 'JoshD', nickname:'JoshD', color:'#A30090', rank:'Old School' },
-  { name: 'Cutyourgrass', nickname:'Cutty', color:'#A30090', rank:'Old School' }
-];
-
-/* ============= SKILLS ============= */
-
-const SKILLS = [
-  'overall','attack','defence','strength','hitpoints',
-  'ranged','prayer','magic','cooking','woodcutting',
-  'fletching','fishing','firemaking','crafting','smithing',
-  'mining','herblore','agility','thieving','slayer',
-  'farming','runecraft','hunter','construction','sailing'
-];
-
-let playerStats = {};
-let currentSort = { skill:'total', order:'desc' };
-let activeRankFilter = null;
-let activeSkillFilter = null;
-
-/* ============= ICONS ============= */
-
-const SKILL_ICONS = {
-  attack:'⚔️', strength:'💪', defence:'🛡️', ranged:'🏹',
-  magic:'✨', prayer:'🙏', hitpoints:'❤️', combat:'⚔️',
-  cooking:'🍳', woodcutting:'🪓', fletching:'🏹', fishing:'🎣',
-  firemaking:'🔥', crafting:'🧵', smithing:'🔨', mining:'⛏️',
-  herblore:'🌿', agility:'🏃', thieving:'🗝️', slayer:'👹',
-  farming:'🌾', runecraft:'📜', hunter:'🏹', construction:'🏠',
-  sailing:'⛵'
+// ================= CONFIG ===================
+const TABS = {
+  mains: [
+    { name: 'G3ND3RB3ND3R', color:'#FF2900', nickname:'G3ND' },
+    { name: 'Big Mac luvr', color:'#FF2900', nickname:'Mac' },
+    { name: '777 Hit Man', color:'#FF00E1', nickname:'HitMan' },
+  ],
+  ironman: [
+    { name: 'IronGuy1', color:'#00FF91', nickname:'IG1' },
+    { name: 'IronLady', color:'#FFF12E', nickname:'ILady' },
+  ],
+  hcim: [
+    { name: 'HCWarrior', color:'#ADA653', nickname:'HCW' }
+  ],
+  uim: [
+    { name: 'UltimateU', color:'#A30090', nickname:'UU' }
+  ]
 };
+const SKILLS = ['overall','attack','strength','defence','hitpoints','ranged','prayer','magic','cooking','woodcutting','fletching','fishing','firemaking','crafting','smithing','mining','herblore','agility','thieving','slayer','farming','runecraft','hunter','construction','sailing'];
 
+const SKILL_ICONS = { attack:'⚔️', strength:'💪', defence:'🛡️', ranged:'🏹', magic:'✨', prayer:'🙏', hitpoints:'❤️', combat:'⚔️', cooking:'🍳', woodcutting:'🪓', fletching:'🏹', fishing:'🎣', firemaking:'🔥', crafting:'🧵', smithing:'🔨', mining:'⛏️', herblore:'🌿', agility:'🏃', thieving:'🗝️', slayer:'👹', farming:'🌾', runecraft:'📜', hunter:'🏹', construction:'🏠', sailing:'⛵'};
+
+// ================= STATE ===================
+let allStats = {}; // {tab:{playerName:stats}}
+let currentSort = {}; // {tab:{skill,order}}
+let currentRankFilter = {}; // {tab:rank}
+let currentSkillFilter = {}; // {tab:skill}
+
+// ================= FUNCTIONS ===================
 function calculateCombat(stats){
-  const a=stats.attack?.level||1;
-  const s=stats.strength?.level||1;
-  const d=stats.defence?.level||1;
-  const hp=stats.hitpoints?.level||10;
-  const p=stats.prayer?.level||1;
-  const r=stats.ranged?.level||1;
-  const m=stats.magic?.level||1;
-  const base=0.25*(d+hp+Math.floor(p/2));
-  const melee=0.325*(a+s);
-  const range=0.325*(Math.floor(r/2)+r);
-  const mage=0.325*(Math.floor(m/2)+m);
+  const a = stats.attack?.level||1;
+  const s = stats.strength?.level||1;
+  const d = stats.defence?.level||1;
+  const hp = stats.hitpoints?.level||10;
+  const p = stats.prayer?.level||1;
+  const r = stats.ranged?.level||1;
+  const m = stats.magic?.level||1;
+  const base = 0.25*(d+hp+Math.floor(p/2));
+  const melee = 0.325*(a+s);
+  const range = 0.325*(Math.floor(r/2)+r);
+  const mage = 0.325*(Math.floor(m/2)+m);
   return Math.floor(base+Math.max(melee,range,mage));
 }
 
-/* ============= FETCHING (WITH RETRIES) ============= */
 async function fetchPlayer(playerName){
-  const urls=[
-    'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player='+playerName),
-    'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent('https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player='+playerName)
+  const urls = [
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=' + playerName),
+    'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent('https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=' + playerName)
   ];
-
   for(const url of urls){
-    for(let attempt=0; attempt<3; attempt++){
-      try{
-        const res=await fetch(url);
-        if(!res.ok) throw new Error("HTTP "+res.status);
-        const txt=await res.text();
-        const lines=txt.trim().split('\n');
-        const s={};
-        for(let i=0;i<lines.length && i<SKILLS.length;i++){
-          const p=lines[i].split(',');
-          if(p.length!==3) continue;
-          s[SKILLS[i]]={
-            rank:parseInt(p[0],10),
-            level:parseInt(p[1],10),
-            xp:parseInt(p[2],10)
-          };
-        }
-        s.combat=calculateCombat(s);
-        playerStats[playerName]=s;
-        return;
-      }catch(err){
-        await new Promise(r=>setTimeout(r,300));
+    try{
+      const res = await fetch(url);
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const txt = await res.text();
+      const lines = txt.trim().split('\n');
+      const stats = {};
+      for(let i=0;i<lines.length && i<SKILLS.length;i++){
+        const parts = lines[i].split(',');
+        if(parts.length!==3) continue;
+        stats[SKILLS[i]] = { rank:parseInt(parts[0],10), level:parseInt(parts[1],10), xp:parseInt(parts[2],10) };
       }
-    }
+      stats.combat = calculateCombat(stats);
+      return stats;
+    }catch(e){}
   }
-  playerStats[playerName]={error:true};
+  return { error:true };
 }
 
-async function loadAllPlayers(){
-  playerStats={};
-  document.getElementById('statsTableBody').innerHTML = `<tr><td colspan="10" class="loading">Loading...</td></tr>`;
-  document.getElementById('rightContent').innerHTML='Loading...';
+// render single tab
+async function renderTab(tabId){
+  const container = document.getElementById(tabId);
+  container.innerHTML = `
+    <div class="column legend-box" id="${tabId}-legend">
+      <h2>Ranks Legend</h2>
+      <div style="color:#FF2900;" onclick="filterRank('${tabId}','Leader')">Leader</div>
+      <div style="color:#FF00E1;" onclick="filterRank('${tabId}','Council')">Council</div>
+      <div style="color:#00FF91;" onclick="filterRank('${tabId}','Captain')">Captain</div>
+      <div style="color:#FFF12E;" onclick="filterRank('${tabId}','Legend')">Legend</div>
+      <div style="color:#ADA653;" onclick="filterRank('${tabId}','Elder')">Elder</div>
+      <div style="color:#A30090;" onclick="filterRank('${tabId}','Old School')">Old School</div>
+      <div style="color:#0E00A3;" onclick="filterRank('${tabId}','Senior')">Senior</div>
+      <div style="color:#003CFF;" onclick="filterRank('${tabId}','Member')">Member</div>
+      <div style="color:#00BFFF;" onclick="filterRank('${tabId}','Trial')">Trial</div>
+      <div style="color:#B6B6B6;" onclick="filterRank('${tabId}','Retired')">Retired</div>
+      <button class="unfilter-btn" onclick="clearRankFilter('${tabId}')">Unfilter</button>
+    </div>
+    <div class="column" style="flex:1;">
+      <table class="stats-table" id="${tabId}-table">
+        <thead>
+          <tr>
+            <th>Player</th>
+            <th>Nickname</th>
+            ${SKILLS.map(s=>`<th>${SKILL_ICONS[s]||s}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody id="${tabId}-tbody"><tr><td colspan="${2+SKILLS.length}" class="loading">Loading...</td></tr></tbody>
+      </table>
+    </div>
+    <div class="column" style="width:250px;">
+      <h2>Average Stats</h2>
+      <div id="${tabId}-avg">Loading...</div>
+      <button class="unfilter-btn" onclick="clearSkillFilter('${tabId}')">Unfilter Skill</button>
+    </div>
+  `;
 
-  await Promise.all(PLAYERS.map(p=>fetchPlayer(p.name)));
-
-  renderTable();
-  renderAverageBox();
-
-  document.getElementById("lastUpdated").textContent =
-    "Last updated: " + new Date().toLocaleString();
+  // fetch all players for this tab
+  const players = TABS[tabId];
+  allStats[tabId] = {};
+  for(const p of players){
+    const stats = await fetchPlayer(p.name);
+    allStats[tabId][p.name] = stats;
+  }
+  currentSort[tabId] = { skill:'overall', order:'desc' };
+  renderTable(tabId);
+  renderAverage(tabId);
 }
 
-/* ============= RENDER TABLE ============= */
-function renderTable(){
-  const tbody=document.getElementById('statsTableBody');
-  let list=PLAYERS;
+// render all tabs
+async function loadAllTabs(){
+  document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+  for(const tab of Object.keys(TABS)) await renderTab(tab);
+}
 
-  if(activeRankFilter)
-    list=list.filter(p=>p.rank===activeRankFilter);
-
-  list=sortPlayers(list, currentSort.skill, currentSort.order);
+// render table
+function renderTable(tabId){
+  const tbody = document.getElementById(`${tabId}-tbody`);
+  const players = TABS[tabId];
+  const filtered = players.filter(p=>{
+    if(currentRankFilter[tabId] && p.color!==rankColor(currentRankFilter[tabId])) return false;
+    if(currentSkillFilter[tabId]) return true; // handled in avg filter
+    return true;
+  });
+  // sort
+  const sorted = filtered.sort((a,b)=>{
+    const statsA = allStats[tabId][a.name];
+    const statsB = allStats[tabId][b.name];
+    const skill = currentSort[tabId].skill;
+    const order = currentSort[tabId].order;
+    const valA = skill==='nickname'?a.nickname:(statsA?.[skill]?.level||0);
+    const valB = skill==='nickname'?b.nickname:(statsB?.[skill]?.level||0);
+    if(typeof valA==='string') return order==='asc'? valA.localeCompare(valB) : valB.localeCompare(valA);
+    return order==='asc'? valA-valB : valB-valA;
+  });
 
   let html='';
-  for(const p of list){
-    const s=playerStats[p.name];
-    if(!s){ html+=`<tr><td colspan="10" class="loading">Loading ${p.name}…</td></tr>`; continue; }
-    if(s.error){ html+=`<tr><td class="player-name" style="color:${p.color}">${p.name}</td><td colspan="9" class="error">Name not found</td></tr>`; continue; }
-
-    const cells=[
-      s.attack?.level, s.strength?.level, s.defence?.level,
-      s.ranged?.level, s.magic?.level, s.prayer?.level,
-      s.hitpoints?.level, s.combat, s.overall?.level
-    ];
-
+  for(const p of sorted){
+    const s = allStats[tabId][p.name];
+    if(!s){ html+=`<tr><td colspan="${2+SKILLS.length}" class="loading">Loading ${p.name}…</td></tr>`; continue;}
+    if(s.error){ html+=`<tr><td>${p.name}</td><td>${p.nickname||''}</td><td colspan="${SKILLS.length}" class="error">Name not found</td></tr>`; continue;}
     html+=`<tr>
-      <td class="player-name" style="color:${p.color}">${p.name}${p.nickname ? " ("+p.nickname+")":""}</td>
-      ${cells.map(c=>`<td>${c!==undefined?c:'-'}</td>`).join('')}
+      <td class="player-name" style="color:${p.color}" title="hover for full stats">${p.name}</td>
+      <td>${p.nickname||''}</td>
+      ${SKILLS.map(sk=>`<td>${s[sk]?.level||'-'}</td>`).join('')}
     </tr>`;
   }
-  tbody.innerHTML=html;
-
-  attachTooltip();
+  tbody.innerHTML = html;
 }
 
-/* ============= SORTING ============= */
-function sortPlayers(list,key,order){
-  return list.slice().sort((a,b)=>{
-    const sa=playerStats[a.name], sb=playerStats[b.name];
-    if(!sa||sa.error) return 1;
-    if(!sb||sb.error) return -1;
-
-    if(key==='name'){
-      return order==='asc'
-        ? a.name.localeCompare(b.name)
-        : b.name.localeCompare(a.name);
-    }
-    let va,vb;
-    if(key==='total'){ va=sa.overall?.level||0; vb=sb.overall?.level||0; }
-    else if(key==='combat'){ va=sa.combat||0; vb=sb.combat||0; }
-    else{ va=sa[key]?.level||0; vb=sb[key]?.level||0; }
-    return order==='asc'? va-vb : vb-va;
-  });
-}
-
-document.querySelectorAll('.sort-icons').forEach(icon=>{
-  const skill=icon.dataset.skill;
-  const spans=icon.querySelectorAll('span');
-
-  spans[0].addEventListener('click',()=>{
-    currentSort={skill,order:'asc'};
-    renderTable();
-  });
-
-  spans[1].addEventListener('click',()=>{
-    currentSort={skill,order:'desc'};
-    renderTable();
-  });
-});
-
-/* ============= TOOLTIP ============= */
-const tooltip=document.getElementById('tooltip');
-
-function showTooltip(e,name,stats){
-  let html='<strong>'+name+'</strong><br>';
-  if(stats.error){ html+='Name not found'; }
-  else{
-    for(const skill of Object.keys(stats)){
-      if(skill==='overall' || skill==='combat') continue;
-      html+=`${SKILL_ICONS[skill]||''} ${skill}: ${stats[skill].level}<br>`;
-    }
-    html+=`⚔️ Combat: ${stats.combat}<br>`;
-    html+=`Total Level: ${stats.overall?.level||0}`;
-  }
-  tooltip.innerHTML=html;
-  tooltip.style.display='block';
-  tooltip.style.top=e.clientY+10+'px';
-  tooltip.style.left=e.clientX+10+'px';
-}
-function moveTooltip(e){ tooltip.style.top=e.clientY+10+'px'; tooltip.style.left=e.clientX+10+'px'; }
-function hideTooltip(){ tooltip.style.display='none'; }
-
-function attachTooltip(){
-  document.querySelectorAll('td.player-name').forEach(td=>{
-    td.addEventListener('mouseenter',e=>{
-      const name=td.textContent.replace(/\s*\(.+\)$/,'');
-      showTooltip(e,name,playerStats[name]);
-    });
-    td.addEventListener('mousemove',moveTooltip);
-    td.addEventListener('mouseleave',hideTooltip);
-  });
-}
-
-/* ============= RANK FILTERING ============= */
-
-document.querySelectorAll("[data-rank]").forEach(div=>{
-  div.addEventListener("click",()=>{
-    activeRankFilter = div.dataset.rank;
-    document.getElementById("clearRankFilter").style.display = "block";
-    renderTable();
-  });
-});
-
-document.getElementById("clearRankFilter").addEventListener("click",()=>{
-  activeRankFilter = null;
-  document.getElementById("clearRankFilter").style.display = "none";
-  renderTable();
-});
-
-/* ============= AVERAGE STATS OR SKILL LEADERBOARD ============= */
-
-function renderAverageBox(){
-  if(activeSkillFilter){
-    renderSkillLeaderboard();
-    return;
-  }
-
-  const box=document.getElementById("rightContent");
-  const title=document.getElementById("rightTitle");
-  title.textContent="Average Stats";
-
-  let list=PLAYERS;
-  if(activeRankFilter)
-    list=list.filter(p=>p.rank===activeRankFilter);
-
-  box.innerHTML='';
-  const counted=list.filter(p=>!playerStats[p.name].error).length;
-
-  let totalCombat=0, totalOverall=0;
-
-  for(const p of list){
-    const s=playerStats[p.name];
+// average stats & skill filter
+function renderAverage(tabId){
+  const container = document.getElementById(`${tabId}-avg`);
+  const players = TABS[tabId];
+  const totals = {};
+  SKILLS.forEach(s=>totals[s]=0);
+  let count=0;
+  for(const p of players){
+    const s = allStats[tabId][p.name];
     if(!s || s.error) continue;
-    totalCombat+=s.combat;
-    totalOverall+=s.overall?.level||0;
+    count++;
+    SKILLS.forEach(sk=>totals[sk]+=s[sk]?.level||0);
   }
-
-  box.innerHTML += `<strong>Number of players:</strong> ${list.length}<br>`;
-  box.innerHTML += `<strong>Avg Combat:</strong> ${counted?Math.round(totalCombat/counted):0}<br>`;
-  box.innerHTML += `<strong>Avg Total Level:</strong> ${counted?Math.round(totalOverall/counted):0}<br><br>`;
-
-  box.innerHTML += `<h3 style="color:orange;text-align:center;">Skills</h3>`;
-
-  SKILLS.forEach(skill=>{
-    box.innerHTML += `<div style="cursor:pointer;color:#ccc;margin:4px 0;" onclick="filterBySkill('${skill}')">
-      ${SKILL_ICONS[skill]||''} ${skill.charAt(0).toUpperCase()+skill.slice(1)}
-    </div>`;
+  let html = '';
+  SKILLS.forEach(sk=>{
+    html += `<div class="clickable" onclick="filterSkill('${tabId}','${sk}')">${SKILL_ICONS[sk]||sk}: ${count?Math.round(totals[sk]/count):0}</div>`;
   });
-
-  document.getElementById("clearSkillFilter").style.display="none";
+  container.innerHTML = html;
 }
 
-/* ============= SKILL FILTER MODE ============= */
-
-function filterBySkill(skill){
-  activeSkillFilter = skill;
-  renderSkillLeaderboard();
-}
-
-function renderSkillLeaderboard(){
-  const title=document.getElementById("rightTitle");
-  const box=document.getElementById("rightContent");
-  const skill=activeSkillFilter;
-
-  title.textContent = `Top ${skill.charAt(0).toUpperCase()+skill.slice(1)}`;
-
-  let list=PLAYERS.filter(p=>!playerStats[p.name].error);
-
-  if(activeRankFilter)
-    list=list.filter(p=>p.rank===activeRankFilter);
-
-  list=list.sort((a,b)=>{
-    const sa=playerStats[a.name][skill]?.xp||0;
-    const sb=playerStats[b.name][skill]?.xp||0;
-    return sb - sa;
-  });
-
+// filter & clear
+function filterRank(tabId, rank){ currentRankFilter[tabId]=rank; renderTable(tabId); }
+function clearRankFilter(tabId){ currentRankFilter[tabId]=null; renderTable(tabId); }
+function filterSkill(tabId, skill){
+  currentSkillFilter[tabId]=skill;
+  const players = TABS[tabId];
+  const tbody = document.getElementById(`${tabId}-tbody`);
+  const rows = [];
+  for(const p of players){
+    const s = allStats[tabId][p.name];
+    if(!s || s.error) continue;
+    rows.push({name:p.name,nickname:p.nickname||'',level:s[skill]?.level||0,xp:s[skill]?.xp||0});
+  }
+  rows.sort((a,b)=>b.xp-a.xp);
   let html='';
+  for(const r of rows) html+=`<tr><td>${r.name}</td><td>${r.nickname}</td><td colspan="${SKILLS.length}">Level: ${r.level}, XP: ${r.xp}</td></tr>`;
+  tbody.innerHTML=html;
+}
+function clearSkillFilter(tabId){ currentSkillFilter[tabId]=null; renderTable(tabId); }
 
-  list.forEach(p=>{
-    const s=playerStats[p.name][skill];
-    if(!s) return;
-    html+=`
-      <div style="margin-bottom:6px;">
-        <strong style="color:${p.color}">${p.name}</strong>
-        ${p.nickname ? " ("+p.nickname+")" : ""}
-        <br>
-        Level: ${s.level} — XP: ${s.xp.toLocaleString()}
-      </div>
-      <hr style="border-color:#333;">
-    `;
-  });
-
-  box.innerHTML=html;
-
-  document.getElementById("clearSkillFilter").style.display="block";
+// rank color helper
+function rankColor(rank){
+  const map = {Leader:'#FF2900',Council:'#FF00E1',Captain:'#00FF91',Legend:'#FFF12E',Elder:'#ADA653', 'Old School':'#A30090', Senior:'#0E00A3', Member:'#003CFF', Trial:'#00BFFF', Retired:'#B6B6B6'};
+  return map[rank]||'#fff';
 }
 
-document.getElementById("clearSkillFilter").addEventListener("click",()=>{
-  activeSkillFilter=null;
-  renderAverageBox();
+// tabs switching
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(tc=>tc.classList.remove('active'));
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  });
 });
 
-/* ============= INIT ============= */
-window.addEventListener('load', loadAllPlayers);
-
+// initial load
+loadAllTabs();
 </script>
+
 </body>
 </html>
-
-
