@@ -1,296 +1,85 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>OSRS Player Stats Tracker</title>
-  <style>
-    body { 
-      font-family: Arial, sans-serif; 
-      background: #000; 
-      color: #fff;
-      padding: 20px; 
-    }
-    .container { 
-      max-width: 1200px; 
-      margin: 0 auto; 
-      background: #111; 
-      padding: 20px; 
-      border-radius: 8px; 
-      box-shadow: 0 2px 8px rgba(255,255,255,0.1); 
-    }
-    h1 { 
-      margin-bottom: 20px; 
-      color: #fff; 
-    }
-    .controls { 
-      margin-bottom: 20px; 
-      display: flex; 
-      gap: 10px; 
-      flex-wrap: wrap; 
-    }
-    .controls select, .controls button { 
-      padding: 8px 12px; 
-      font-size: 14px; 
-      background: #222;
-      color: #fff;
-      border: 1px solid #555;
-      border-radius: 4px;
-    }
-    .stats-table { 
-      width: 100%; 
-      border-collapse: collapse; 
-      margin-top: 10px; 
-    }
-    .stats-table th, .stats-table td { 
-      border: 1px solid #555; 
-      padding: 8px; 
-      text-align: center; 
-    }
-    .stats-table th { 
-      background: #222; 
-      color: #fff;
-    }
-    .stats-table tr:nth-child(even) {
-      background: #111;
-    }
-    .stats-table tr:nth-child(odd) {
-      background: #000;
-    }
-    .loading { 
-      text-align: center; 
-      font-style: italic; 
-      color: #aaa; 
-    }
-    .error { 
-      color: #FF5555; 
-      font-weight: bold; 
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>OSRS Player Stats</h1>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #000; /* black page background */
+    color: #fff;       /* default text white */
+    padding: 20px;
+  }
 
-    <div class="controls">
-      <label>
-        Sort by:  
-        <select id="sortSelect">
-          <option value="total">Total Level</option>
-          <option value="combat">Combat</option>
-          <option value="name">Name</option>
-        </select>
-      </label>
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: #1a1a1a; /* dark gray container for contrast */
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(255,255,255,0.1);
+  }
 
-      <label>
-        Order:  
-        <select id="orderSelect">
-          <option value="desc">High → Low</option>
-          <option value="asc">Low → High</option>
-        </select>
-      </label>
+  h1 {
+    margin-bottom: 20px;
+    color: #fff;
+  }
 
-      <label>
-        View:  
-        <select id="viewSelect">
-          <option value="all">All Stats</option>
-          <option value="combat">Combat Only</option>
-          <option value="total">Total Only</option>
-          <optgroup label="Single Skill">
-            <option value="attack">Attack</option>
-            <option value="strength">Strength</option>
-            <option value="defence">Defence</option>
-            <option value="ranged">Ranged</option>
-            <option value="magic">Magic</option>
-            <option value="prayer">Prayer</option>
-            <option value="hitpoints">Hitpoints</option>
-            <option value="mining">Mining</option>
-            <option value="fishing">Fishing</option>
-            <option value="woodcutting">Woodcutting</option>
-            <option value="farming">Farming</option>
-            <option value="hunter">Hunter</option>
-            <option value="crafting">Crafting</option>
-            <option value="smithing">Smithing</option>
-            <option value="fletching">Fletching</option>
-            <option value="herblore">Herblore</option>
-            <option value="cooking">Cooking</option>
-            <option value="firemaking">Firemaking</option>
-            <option value="construction">Construction</option>
-            <option value="agility">Agility</option>
-            <option value="thieving">Thieving</option>
-            <option value="slayer">Slayer</option>
-            <option value="runecraft">Runecraft</option>
-          </optgroup>
-        </select>
-      </label>
+  .controls {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
 
-      <button id="refreshBtn">Refresh Stats</button>
-    </div>
+  .controls select, .controls button {
+    padding: 8px 12px;
+    font-size: 14px;
+    background: #333;
+    color: #fff;
+    border: 1px solid #555;
+    border-radius: 4px;
+    cursor: pointer;
+  }
 
-    <table class="stats-table" id="statsTable">
-      <thead id="statsTableHead">
-        <tr>
-          <th>Player</th>
-          <th>Attack</th>
-          <th>Strength</th>
-          <th>Defence</th>
-          <th>Ranged</th>
-          <th>Magic</th>
-          <th>Prayer</th>
-          <th>Hitpoints</th>
-          <th>Combat</th>
-          <th>Total Level</th>
-        </tr>
-      </thead>
-      <tbody id="statsTableBody">
-        <tr><td colspan="10" class="loading">Loading...</td></tr>
-      </tbody>
-    </table>
-  </div>
+  .controls select:hover, .controls button:hover {
+    background: #444;
+  }
 
-  <script>
-    const PLAYERS = [
-      { name: 'G3ND3RB3ND3R', color: '#FF6B6B' },
-      { name: '777 Hit Man', color: '#4ECDC4' },
-    ];
+  .stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
 
-    const SKILLS = [
-      'overall','attack','defence','strength','hitpoints',
-      'ranged','prayer','magic','cooking','woodcutting',
-      'fletching','fishing','firemaking','crafting','smithing',
-      'mining','herblore','agility','thieving','slayer',
-      'farming','runecraft','hunter','construction'
-    ];
+  .stats-table th, .stats-table td {
+    border: 1px solid #555;
+    padding: 8px;
+    text-align: center;
+  }
 
-    let playerStats = {};
+  .stats-table th {
+    background: #222;
+    color: #fff;
+    font-weight: bold;
+  }
 
-    function calculateCombat(stats) {
-      const a = stats.attack?.level || 1;
-      const s = stats.strength?.level || 1;
-      const d = stats.defence?.level || 1;
-      const hp = stats.hitpoints?.level || 10;
-      const p = stats.prayer?.level || 1;
-      const r = stats.ranged?.level || 1;
-      const m = stats.magic?.level || 1;
-      const base = 0.25 * (d + hp + Math.floor(p / 2));
-      const melee = 0.325 * (a + s);
-      const range = 0.325 * (Math.floor(r / 2) + r);
-      const mage = 0.325 * (Math.floor(m / 2) + m);
-      return Math.floor(base + Math.max(melee, range, mage));
-    }
+  .stats-table td {
+    background: #1a1a1a;
+    color: #fff;
+  }
 
-    async function fetchPlayer(playerName) {
-      const proxyUrl = 'https://api.allorigins.win/raw?url=' +
-        encodeURIComponent('https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=' + playerName);
+  .stats-table tr:nth-child(even) td {
+    background: #2a2a2a; /* subtle striped effect */
+  }
 
-      try {
-        const res = await fetch(proxyUrl);
-        if (!res.ok) throw new Error('HTTP status ' + res.status);
-        const txt = await res.text();
-        const lines = txt.trim().split('\n');
-        const stats = {};
-        for (let i = 0; i < lines.length && i < SKILLS.length; i++) {
-          const parts = lines[i].split(',');
-          if (parts.length !== 3) continue;
-          stats[SKILLS[i]] = {
-            rank: parseInt(parts[0], 10),
-            level: parseInt(parts[1], 10),
-            xp: parseInt(parts[2], 10),
-          };
-        }
-        stats.combat = calculateCombat(stats);
-        playerStats[playerName] = stats;
-      } catch (err) {
-        console.error('Error fetching ' + playerName, err);
-        playerStats[playerName] = { error: true, errorMessage: err.message };
-      }
-    }
+  .stats-table td.player-name {
+    font-weight: bold; /* bold player names */
+  }
 
-    async function loadAllPlayers() {
-      playerStats = {};
-      const promises = PLAYERS.map(p => fetchPlayer(p.name));
-      await Promise.all(promises);
-      renderTable();
-    }
+  .loading {
+    text-align: center;
+    font-style: italic;
+    color: #999;
+  }
 
-    function sortPlayers(arr, sortKey, order) {
-      return arr.slice().sort((a, b) => {
-        const sa = playerStats[a.name];
-        const sb = playerStats[b.name];
-        if (!sa || sa.error) return 1;
-        if (!sb || sb.error) return -1;
-
-        let va, vb;
-        if (sortKey === 'total') {
-          va = sa.overall?.level || 0;
-          vb = sb.overall?.level || 0;
-        } else if (sortKey === 'combat') {
-          va = sa.combat || 0;
-          vb = sb.combat || 0;
-        } else if (sortKey === 'name') {
-          return order === 'asc'
-            ? a.name.localeCompare(b.name)
-            : b.name.localeCompare(a.name);
-        } else {
-          va = sa.overall?.level || 0;
-          vb = sb.overall?.level || 0;
-        }
-
-        return order === 'asc' ? va - vb : vb - va;
-      });
-    }
-
-    function renderTable() {
-      const tbody = document.getElementById('statsTableBody');
-      const view = document.getElementById('viewSelect').value;
-      const sortBy = document.getElementById('sortSelect').value;
-      const order = document.getElementById('orderSelect').value;
-
-      const sorted = sortPlayers(PLAYERS, sortBy, order);
-
-      let html = '';
-      for (const p of sorted) {
-        const s = playerStats[p.name];
-        if (!s) {
-          html += `<tr><td colspan="10" class="loading">Loading ${p.name}…</td></tr>`;
-          continue;
-        }
-
-        if (s.error) {
-          html += `<tr><td style="color:${p.color}; font-weight:bold">${p.name}</td><td colspan="9" class="error">Error: ${s.errorMessage || 'Failed to load'}</td></tr>`;
-          continue;
-        }
-
-        const cells = [];
-        if (view === 'all' || view === 'combat') {
-          cells.push(
-            s.attack?.level, s.strength?.level, s.defence?.level,
-            s.ranged?.level, s.magic?.level, s.prayer?.level,
-            s.hitpoints?.level, s.combat, s.overall?.level
-          );
-        } else if (view === 'total') {
-          cells.push(s.overall?.level, s.overall?.xp);
-        } else {
-          const skill = view;
-          const data = s[skill] || { level: '-', xp: '-', rank: '-' };
-          cells.push(data.level, data.xp, data.rank);
-        }
-
-        html += `<tr>
-          <td style="color:${p.color}; font-weight:bold">${p.name}</td>
-          ${cells.map(c => `<td>${c !== undefined ? c : '-'}</td>`).join('')}
-        </tr>`;
-      }
-
-      tbody.innerHTML = html;
-    }
-
-    document.getElementById('sortSelect').addEventListener('change', renderTable);
-    document.getElementById('orderSelect').addEventListener('change', renderTable);
-    document.getElementById('viewSelect').addEventListener('change', renderTable);
-    document.getElementById('refreshBtn').addEventListener('click', loadAllPlayers);
-
-    window.addEventListener('load', loadAllPlayers);
-  </script>
-</body>
-</html>
+  .error {
+    color: #ff4d4d;
+    font-weight: bold;
+  }
+</style>
