@@ -16,7 +16,23 @@ body {
 h1 {
   text-align:center;
   color: orange;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
+}
+
+#refreshBtn {
+  display: block;
+  margin: 0 auto 20px auto;
+  padding: 8px 16px;
+  background: orange;
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#refreshBtn:hover {
+  background: #ffb84d;
 }
 
 .container {
@@ -118,6 +134,7 @@ h1 {
 <body>
 
 <h1>Chivalry Legion High Scores</h1>
+<button id="refreshBtn">Refresh</button>
 
 <div class="container">
   <table class="stats-table" id="statsTable">
@@ -224,9 +241,10 @@ async function fetchPlayer(playerName){
 
 async function loadAllPlayers(){
   playerStats={};
+  document.getElementById('loadingOverlay').style.display='flex';
   for(const p of PLAYERS){
     await fetchPlayer(p.name);
-    await new Promise(r => setTimeout(r, 100)); // small delay
+    await new Promise(r => setTimeout(r, 100));
   }
   renderTable();
   renderAverageBox();
@@ -339,6 +357,9 @@ function renderAverageBox(){
   }
   container.innerHTML=html;
 }
+
+// Refresh button
+document.getElementById('refreshBtn').addEventListener('click', loadAllPlayers);
 
 window.addEventListener('load', loadAllPlayers);
 </script>
