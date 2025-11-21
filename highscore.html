@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Chivalry Legions - High Scores</title>
+<title>OSRS Player Stats Tracker</title>
 <style>
-html, body {
-  margin: 0;
-  padding: 0;
+body {
+  font-family: Arial, sans-serif;
   background: #000;
   color: #fff;
-  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
 }
 .container {
   max-width: 1200px;
@@ -19,61 +19,42 @@ html, body {
   padding: 20px;
   border-radius: 8px;
 }
-h1 { display:inline-block; margin:0 10px 20px 0; }
-button#refreshBtn {
-  padding: 6px 12px;
-  font-size: 14px;
-  background: #222;
-  color: #fff;
-  border: 1px solid #444;
-  border-radius: 4px;
-  cursor: pointer;
-}
-button#refreshBtn:hover { background: #333; }
-
-.stats-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.stats-table th, .stats-table td {
-  border: 1px solid #444;
-  padding: 8px;
-  text-align: center;
-}
-.stats-table th { background: #222; color:#fff; font-weight:bold; }
-.stats-table td { background: #1a1a1a; color:#eee; }
+h1 { margin-bottom: 20px; color: #fff; }
+.stats-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+.stats-table th, .stats-table td { border: 1px solid #444; padding: 8px; text-align: center; }
+.stats-table th { background: #222; font-weight: bold; position: relative; }
+.stats-table td { background: #1a1a1a; color: #eee; }
 .stats-table tr:nth-child(even) td { background: #2a2a2a; }
-td.player-name { font-weight:bold; cursor:pointer; position:relative; }
-.sort-icons { display:inline-block; margin-left:5px; cursor:pointer; font-size:12px; vertical-align:middle; }
-.sort-icons span { display:inline-block; line-height:12px; margin-left:1px; color:#aaa; transition:color 0.2s; }
-.sort-icons span:hover { color:#fff; }
-th img.skill-icon { width:20px; height:20px; vertical-align:middle; margin-right:4px; }
+td.player-name { font-weight: bold; position: relative; cursor: pointer; }
+.sort-icons { display: inline-block; margin-left: 5px; cursor: pointer; font-size: 12px; vertical-align: middle; }
+.sort-icons span { display: block; line-height: 10px; }
+th img.skill-icon { width: 20px; height: 20px; vertical-align: middle; margin-right: 4px; }
 .loading { text-align:center; font-style:italic; color:#999; }
 .error { color:#ff4d4d; font-weight:bold; }
 
+/* Tooltip */
 .tooltip {
-  display: none;
-  position: fixed; /* follow mouse */
+  position: absolute;
   background: #222;
-  color: #fff;
-  padding: 10px;
   border: 1px solid #444;
+  padding: 10px;
   border-radius: 6px;
   z-index: 1000;
-  font-size:12px;
-  max-width: 250px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  max-width: 300px;
+  display: none;
+  font-size: 12px;
 }
-.tooltip h4 { margin:0 0 6px 0; font-size:14px; text-align:center; border-bottom:1px solid #444; padding-bottom:4px; }
-.tooltip .stat-row { display:flex; justify-content:space-between; margin-bottom:4px; }
-.tooltip .stat-row img { width:18px; height:18px; vertical-align:middle; margin-right:4px; }
+.tooltip img { width:16px; height:16px; vertical-align:middle; margin-right:4px; }
+.refresh-btn {
+  background:#222; color:#fff; border:1px solid #444; padding:6px 12px; border-radius:4px; cursor:pointer; margin-bottom:10px;
+}
+.refresh-btn:hover { background:#333; }
 </style>
 </head>
 <body>
 <div class="container">
 <h1>OSRS Player Stats</h1>
-<button id="refreshBtn">Refresh</button>
-
+<button class="refresh-btn" onclick="loadAllPlayers()">Refresh Stats</button>
 <table class="stats-table" id="statsTable">
   <thead>
     <tr>
@@ -86,14 +67,13 @@ th img.skill-icon { width:20px; height:20px; vertical-align:middle; margin-right
       <th><img src="https://oldschool.runescape.wiki/images/Prayer_icon.png" class="skill-icon" alt="Prayer">Prayer <span class="sort-icons" data-skill="prayer"><span>▲</span><span>▼</span></span></th>
       <th><img src="https://oldschool.runescape.wiki/images/Hitpoints_icon.png" class="skill-icon" alt="Hitpoints">Hitpoints <span class="sort-icons" data-skill="hitpoints"><span>▲</span><span>▼</span></span></th>
       <th><img src="https://oldschool.runescape.wiki/images/Combat_icon.png" class="skill-icon" alt="Combat">Combat <span class="sort-icons" data-skill="combat"><span>▲</span><span>▼</span></span></th>
-      <th><img src="https://oldschool.runescape.wiki/images/Overall_icon.png" class="skill-icon" alt="Total Level">Total Level <span class="sort-icons" data-skill="total"><span>▲</span><span>▼</span></span></th>
+      <th><img src="https://i.imgur.com/3fM9WNL.png" class="skill-icon" alt="Total Level">Total Level <span class="sort-icons" data-skill="total"><span>▲</span><span>▼</span></span></th>
     </tr>
   </thead>
   <tbody id="statsTableBody">
     <tr><td colspan="10" class="loading">Loading...</td></tr>
   </tbody>
 </table>
-
 <div class="tooltip" id="tooltip"></div>
 </div>
 
@@ -105,124 +85,148 @@ const PLAYERS = [
 ];
 
 const SKILLS = [
-  { key:'attack', icon:'https://oldschool.runescape.wiki/images/Attack_icon.png', group:'combat'},
-  { key:'strength', icon:'https://oldschool.runescape.wiki/images/Strength_icon.png', group:'combat'},
-  { key:'defence', icon:'https://oldschool.runescape.wiki/images/Defence_icon.png', group:'combat'},
-  { key:'hitpoints', icon:'https://oldschool.runescape.wiki/images/Hitpoints_icon.png', group:'combat'},
-  { key:'ranged', icon:'https://oldschool.runescape.wiki/images/Ranged_icon.png', group:'combat'},
-  { key:'magic', icon:'https://oldschool.runescape.wiki/images/Magic_icon.png', group:'combat'},
-  { key:'prayer', icon:'https://oldschool.runescape.wiki/images/Prayer_icon.png', group:'combat'},
-  { key:'overall', icon:'https://oldschool.runescape.wiki/images/Overall_icon.png', group:'non-combat'},
-  { key:'cooking', icon:'https://oldschool.runescape.wiki/images/Cooking_icon.png', group:'non-combat'},
-  { key:'woodcutting', icon:'https://oldschool.runescape.wiki/images/Woodcutting_icon.png', group:'non-combat'},
-  { key:'fletching', icon:'https://oldschool.runescape.wiki/images/Fletching_icon.png', group:'non-combat'},
-  { key:'fishing', icon:'https://oldschool.runescape.wiki/images/Fishing_icon.png', group:'non-combat'},
-  { key:'firemaking', icon:'https://oldschool.runescape.wiki/images/Firemaking_icon.png', group:'non-combat'},
-  { key:'crafting', icon:'https://oldschool.runescape.wiki/images/Crafting_icon.png', group:'non-combat'},
-  { key:'smithing', icon:'https://oldschool.runescape.wiki/images/Smithing_icon.png', group:'non-combat'},
-  { key:'mining', icon:'https://oldschool.runescape.wiki/images/Mining_icon.png', group:'non-combat'},
-  { key:'herblore', icon:'https://oldschool.runescape.wiki/images/Herblore_icon.png', group:'non-combat'},
-  { key:'agility', icon:'https://oldschool.runescape.wiki/images/Agility_icon.png', group:'non-combat'},
-  { key:'thieving', icon:'https://oldschool.runescape.wiki/images/Thieving_icon.png', group:'non-combat'},
-  { key:'slayer', icon:'https://oldschool.runescape.wiki/images/Slayer_icon.png', group:'non-combat'},
-  { key:'farming', icon:'https://oldschool.runescape.wiki/images/Farming_icon.png', group:'non-combat'},
-  { key:'runecraft', icon:'https://oldschool.runescape.wiki/images/Runecraft_icon.png', group:'non-combat'},
-  { key:'hunter', icon:'https://oldschool.runescape.wiki/images/Hunter_icon.png', group:'non-combat'},
-  { key:'construction', icon:'https://oldschool.runescape.wiki/images/Construction_icon.png', group:'non-combat'},
+  { key:'overall', name:'Total Level', icon:'https://i.imgur.com/3fM9WNL.png' },
+  { key:'attack', name:'Attack', icon:'https://oldschool.runescape.wiki/images/Attack_icon.png' },
+  { key:'defence', name:'Defence', icon:'https://oldschool.runescape.wiki/images/Defence_icon.png' },
+  { key:'strength', name:'Strength', icon:'https://oldschool.runescape.wiki/images/Strength_icon.png' },
+  { key:'hitpoints', name:'Hitpoints', icon:'https://oldschool.runescape.wiki/images/Hitpoints_icon.png' },
+  { key:'ranged', name:'Ranged', icon:'https://oldschool.runescape.wiki/images/Ranged_icon.png' },
+  { key:'prayer', name:'Prayer', icon:'https://oldschool.runescape.wiki/images/Prayer_icon.png' },
+  { key:'magic', name:'Magic', icon:'https://oldschool.runescape.wiki/images/Magic_icon.png' },
+  { key:'cooking', name:'Cooking', icon:'https://oldschool.runescape.wiki/images/Cooking_icon.png' },
+  { key:'woodcutting', name:'Woodcutting', icon:'https://oldschool.runescape.wiki/images/Woodcutting_icon.png' },
+  { key:'fletching', name:'Fletching', icon:'https://oldschool.runescape.wiki/images/Fletching_icon.png' },
+  { key:'fishing', name:'Fishing', icon:'https://oldschool.runescape.wiki/images/Fishing_icon.png' },
+  { key:'firemaking', name:'Firemaking', icon:'https://oldschool.runescape.wiki/images/Firemaking_icon.png' },
+  { key:'crafting', name:'Crafting', icon:'https://oldschool.runescape.wiki/images/Crafting_icon.png' },
+  { key:'smithing', name:'Smithing', icon:'https://oldschool.runescape.wiki/images/Smithing_icon.png' },
+  { key:'mining', name:'Mining', icon:'https://oldschool.runescape.wiki/images/Mining_icon.png' },
+  { key:'herblore', name:'Herblore', icon:'https://oldschool.runescape.wiki/images/Herblore_icon.png' },
+  { key:'agility', name:'Agility', icon:'https://oldschool.runescape.wiki/images/Agility_icon.png' },
+  { key:'thieving', name:'Thieving', icon:'https://oldschool.runescape.wiki/images/Thieving_icon.png' },
+  { key:'slayer', name:'Slayer', icon:'https://oldschool.runescape.wiki/images/Slayer_icon.png' },
+  { key:'farming', name:'Farming', icon:'https://oldschool.runescape.wiki/images/Farming_icon.png' },
+  { key:'runecraft', name:'Runecraft', icon:'https://oldschool.runescape.wiki/images/Runecraft_icon.png' },
+  { key:'hunter', name:'Hunter', icon:'https://oldschool.runescape.wiki/images/Hunter_icon.png' },
+  { key:'construction', name:'Construction', icon:'https://oldschool.runescape.wiki/images/Construction_icon.png' },
 ];
 
 let playerStats = {};
+let currentSort = { skill:'total', order:'desc' };
 
-function calculateCombat(stats){
-  const a=stats.attack?.level||1,s=stats.strength?.level||1,d=stats.defence?.level||1,
-  hp=stats.hitpoints?.level||10,p=stats.prayer?.level||1,r=stats.ranged?.level||1,m=stats.magic?.level||1;
-  const base=0.25*(d+hp+Math.floor(p/2)),melee=0.325*(a+s),range=0.325*(Math.floor(r/2)+r),
-  mage=0.325*(Math.floor(m/2)+m);
-  return Math.floor(base+Math.max(melee,range,mage));
+function calculateCombat(stats) {
+  const a = stats.attack?.level || 1;
+  const s = stats.strength?.level || 1;
+  const d = stats.defence?.level || 1;
+  const hp = stats.hitpoints?.level || 10;
+  const p = stats.prayer?.level || 1;
+  const r = stats.ranged?.level || 1;
+  const m = stats.magic?.level || 1;
+  const base = 0.25 * (d + hp + Math.floor(p/2));
+  const melee = 0.325 * (a + s);
+  const range = 0.325 * (Math.floor(r/2)+r);
+  const mage = 0.325 * (Math.floor(m/2)+m);
+  return Math.floor(base + Math.max(melee, range, mage));
 }
 
-async function fetchPlayer(playerName){
-  const proxy='https://api.allorigins.win/raw?url='+encodeURIComponent('https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player='+playerName);
-  try{
-    const res=await fetch(proxy);
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    const txt=await res.text();
-    const lines=txt.trim().split('\n');
-    const stats={};
-    for(let i=0;i<lines.length && i<SKILLS.length;i++){
-      const parts=lines[i].split(',');
-      if(parts.length!==3)continue;
-      stats[SKILLS[i].key]={rank:parseInt(parts[0]),level:parseInt(parts[1]),xp:parseInt(parts[2])};
+// Fetch with fallback
+async function fetchPlayer(name){
+  const urls = [
+    `https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=${encodeURIComponent(name)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent('https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=' + name)}`
+    // add more mirrors if needed
+  ];
+
+  for(const url of urls){
+    try{
+      const proxyUrl = url.includes('allorigins') ? url : `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+      const res = await fetch(proxyUrl);
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const txt = await res.text();
+      const lines = txt.trim().split('\n');
+      const stats = {};
+      for(let i=0;i<lines.length && i<SKILLS.length;i++){
+        const parts = lines[i].split(',');
+        if(parts.length!==3) continue;
+        stats[SKILLS[i].key] = {
+          rank: parseInt(parts[0],10),
+          level: parseInt(parts[1],10),
+          xp: parseInt(parts[2],10)
+        };
+      }
+      stats.combat = calculateCombat(stats);
+      playerStats[name] = stats;
+      return;
+    } catch(err){
+      console.warn(`Failed ${url}: ${err.message}`);
     }
-    stats.combat=calculateCombat(stats);
-    playerStats[playerName]=stats;
-  }catch(err){
-    console.error('Error fetching '+playerName,err);
-    playerStats[playerName]={error:true,errorMessage:err.message};
   }
+  playerStats[name] = { error:true, errorMessage:'All sources failed' };
 }
 
 async function loadAllPlayers(){
-  playerStats={};
-  await Promise.all(PLAYERS.map(p=>fetchPlayer(p.name)));
+  playerStats = {};
+  const promises = PLAYERS.map(p=>fetchPlayer(p.name));
+  await Promise.all(promises);
   renderTable();
 }
 
-let currentSort={skill:'total',order:'desc'};
-
 function sortPlayers(arr, skill, order){
   return arr.slice().sort((a,b)=>{
-    const sa=playerStats[a.name],sb=playerStats[b.name];
-    if(!sa||sa.error)return 1;if(!sb||sb.error)return -1;
+    const sa = playerStats[a.name];
+    const sb = playerStats[b.name];
+    if(!sa||sa.error) return 1;
+    if(!sb||sb.error) return -1;
     let va,vb;
     if(skill==='total'){ va=sa.overall?.level||0; vb=sb.overall?.level||0; }
     else if(skill==='combat'){ va=sa.combat||0; vb=sb.combat||0; }
     else{ va=sa[skill]?.level||0; vb=sb[skill]?.level||0; }
-    return order==='asc'?va-vb:vb-va;
+    return order==='asc'? va-vb : vb-va;
   });
 }
 
 function renderTable(){
   const tbody=document.getElementById('statsTableBody');
-  const sorted=sortPlayers(PLAYERS,currentSort.skill,currentSort.order);
+  const sorted = sortPlayers(PLAYERS, currentSort.skill, currentSort.order);
   let html='';
   for(const p of sorted){
-    const s=playerStats[p.name];
-    if(!s){ html+=`<tr><td colspan="10" class="loading">Loading ${p.name}…</td></tr>`; continue; }
-    if(s.error){ html+=`<tr><td class="player-name" style="color:${p.color}">${p.name}</td><td colspan="9" class="error">Error: ${s.errorMessage||'Failed to load'}</td></tr>`; continue; }
-    const cells=[s.attack?.level,s.strength?.level,s.defence?.level,s.ranged?.level,s.magic?.level,s.prayer?.level,s.hitpoints?.level,s.combat,s.overall?.level];
-    html+=`<tr><td class="player-name" style="color:${p.color}" data-player="${p.name}">${p.name}</td>${cells.map(c=>`<td>${c!==undefined?c:'-'}</td>`).join('')}</tr>`;
+    const s = playerStats[p.name];
+    if(!s){ html += `<tr><td colspan="10" class="loading">Loading ${p.name}…</td></tr>`; continue; }
+    if(s.error){ html += `<tr><td class="player-name" style="color:${p.color}">${p.name}</td><td colspan="9" class="error">${s.errorMessage}</td></tr>`; continue; }
+
+    const cells = [
+      s.attack?.level, s.strength?.level, s.defence?.level,
+      s.ranged?.level, s.magic?.level, s.prayer?.level,
+      s.hitpoints?.level, s.combat, s.overall?.level
+    ];
+
+    html += `<tr>
+      <td class="player-name" style="color:${p.color}" data-name="${p.name}">${p.name}</td>
+      ${cells.map(c=>`<td>${c!==undefined?c:'-'}</td>`).join('')}
+    </tr>`;
   }
   tbody.innerHTML=html;
-  addTooltipEvents();
-}
 
-// Tooltip follow-mouse
-function addTooltipEvents(){
+  // Add hover tooltips
   const tooltip=document.getElementById('tooltip');
-  document.querySelectorAll('td.player-name').forEach(td=>{
-    td.addEventListener('mousemove',e=>{
-      const name=td.dataset.player,stats=playerStats[name];
-      if(!stats||stats.error){ tooltip.style.display='none'; return; }
-      let content=`<h4>${name}</h4>`;
-      content+='<div class="section-title">Combat Skills</div>';
-      SKILLS.filter(s=>s.group==='combat').forEach(skill=>{
-        const lvl=stats[skill.key]?.level??'-';
-        content+=`<div class="stat-row"><div><img src="${skill.icon}" alt="${skill.key}">${skill.key.charAt(0).toUpperCase()+skill.key.slice(1)}</div><div>${lvl}</div></div>`;
+  document.querySelectorAll('.player-name').forEach(td=>{
+    td.addEventListener('mouseenter',e=>{
+      const name = td.dataset.name;
+      const s = playerStats[name];
+      if(!s||s.error) return;
+      let tipHtml=`<strong style="color:${td.style.color}">${name}</strong><br><table>`;
+      SKILLS.forEach(skill=>{
+        const data = s[skill.key] || {level:'-', xp:'-', rank:'-'};
+        tipHtml+=`<tr><td><img src="${skill.icon}" alt="${skill.name}">${skill.name}</td><td>Lvl: ${data.level}</td><td>XP: ${data.xp}</td><td>Rank: ${data.rank}</td></tr>`;
       });
-      content+=`<div class="stat-row"><div><img src="https://oldschool.runescape.wiki/images/Combat_icon.png" alt="Combat">Combat</div><div>${stats.combat}</div></div>`;
-      content+='<div class="section-title">Non-Combat Skills</div>';
-      SKILLS.filter(s=>s.group==='non-combat').forEach(skill=>{
-        const lvl=stats[skill.key]?.level??'-';
-        content+=`<div class="stat-row"><div><img src="${skill.icon}" alt="${skill.key}">${skill.key.charAt(0).toUpperCase()+skill.key.slice(1)}</div><div>${lvl}</div></div>`;
-      });
-      tooltip.innerHTML=content;
+      tipHtml+='</table>';
+      tooltip.innerHTML=tipHtml;
       tooltip.style.display='block';
 
-      let top=e.clientY+15,left=e.clientX+15;
-      const rect=tooltip.getBoundingClientRect();
-      if(left+rect.width>window.innerWidth) left=e.clientX-rect.width-15;
-      if(top+rect.height>window.innerHeight) top=e.clientY-rect.height-15;
+      // Position tooltip inside viewport
+      const rect = td.getBoundingClientRect();
+      const top = Math.min(window.innerHeight - tooltip.offsetHeight - 10, rect.bottom + window.scrollY);
+      const left = Math.min(window.innerWidth - tooltip.offsetWidth - 10, rect.left + window.scrollX);
       tooltip.style.top=top+'px';
       tooltip.style.left=left+'px';
     });
@@ -230,17 +234,15 @@ function addTooltipEvents(){
   });
 }
 
-// Sorting clicks
+// Sort icon clicks
 document.querySelectorAll('.sort-icons').forEach(icon=>{
-  const skill=icon.dataset.skill,spans=icon.querySelectorAll('span');
+  const skill = icon.dataset.skill;
+  const spans = icon.querySelectorAll('span');
   spans[0].addEventListener('click',()=>{ currentSort={skill,order:'asc'}; renderTable(); });
   spans[1].addEventListener('click',()=>{ currentSort={skill,order:'desc'}; renderTable(); });
 });
 
-// Refresh button
-document.getElementById('refreshBtn').addEventListener('click',()=>loadAllPlayers());
-
-window.addEventListener('load',loadAllPlayers);
+window.addEventListener('load', loadAllPlayers);
 </script>
 </body>
 </html>
