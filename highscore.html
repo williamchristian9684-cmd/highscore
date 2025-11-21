@@ -140,10 +140,10 @@ h1 {
     </tbody>
   </table>
 
-  <!-- Right: Skill Ranking -->
-  <div class="side-box" id="skillRankingBox">
-    <h2>Skill Ranking</h2>
-    <div id="skillRankingContent">Select a skill to view ranking</div>
+  <!-- Right: Average Stats -->
+  <div class="side-box" id="averageBox">
+    <h2>Average Stats</h2>
+    <div id="averageContent">Loading...</div>
   </div>
 </div>
 
@@ -182,7 +182,7 @@ const SKILLS = [
 let playerStats = {};
 let currentSort = { skill:'total', order:'desc' };
 
-// Icons
+// Skill icons
 const SKILL_ICONS = {
   attack:'⚔️', strength:'💪', defence:'🛡️', ranged:'🏹',
   magic:'✨', prayer:'🙏', hitpoints:'❤️', combat:'⚔️',
@@ -246,7 +246,7 @@ async function loadAllPlayers(){
   playerStats={};
   await Promise.all(PLAYERS.map(p=>fetchPlayer(p.name)));
   renderTable();
-  renderSkillRanking(currentSort.skill);
+  renderAverageBox();
 }
 
 function sortPlayers(arr, key, order){
@@ -324,30 +324,40 @@ document.querySelectorAll('.sort-icons').forEach(icon=>{
   spans[0].addEventListener('click', ()=>{
     currentSort = { skill, order:'asc' };
     renderTable();
-    renderSkillRanking(skill);
+    renderAverageBox();
   });
   spans[1].addEventListener('click', ()=>{
     currentSort = { skill, order:'desc' };
     renderTable();
-    renderSkillRanking(skill);
+    renderAverageBox();
   });
 });
 
-function renderSkillRanking(skill){
-  const panel = document.getElementById('skillRankingContent');
-  if(!skill) { panel.innerHTML='Select a skill to view ranking'; return; }
+function renderAverageBox(){
+  const container=document.getElementById('averageContent');
+  const members = PLAYERS.length;
+  let combatSum=0, totalSum=0;
+  let skillSums = {};
+  SKILLS.forEach(s=>{ if(s!=='overall') skillSums[s]=0; });
+  let counted=0;
 
-  const sortedPlayers = sortPlayers(PLAYERS, skill, 'desc');
-  let html = `<strong>${skill.charAt(0).toUpperCase() + skill.slice(1)} Rankings</strong><br><br>`;
-  for(const p of sortedPlayers){
-    const stats = playerStats[p.name];
-    if(!stats || stats.error){ html += `<span style="color:${p.color}">${p.name}</span>: Name not found<br>`; }
-    else {
-      let level = skill === 'combat' ? stats.combat : (stats[skill]?.level||0);
-      html += `<span style="color:${p.color}">${p.name}</span>: ${level}<br>`;
+  for(const p of PLAYERS){
+    const s=playerStats[p.name];
+    if(!s||s.error) continue;
+    counted++;
+    combatSum += s.combat||0;
+    totalSum += s.overall?.level||0;
+    for(const skill of Object.keys(skillSums)){
+      if(skill==='combat') continue;
+      skillSums[skill] += s[skill]?.level||0;
     }
   }
-  panel.innerHTML = html;
+
+  let html = `Number of members: ${members}<br>Average Combat: ${counted? Math.round(combatSum/counted):0}<br>Average Total Level: ${counted? Math.round(totalSum/counted):0}<br>`;
+  for(const skill of Object.keys(skillSums)){
+    html += `${SKILL_ICONS[skill]||''} ${skill.charAt(0).toUpperCase()+skill.slice(1)}: ${counted? Math.round(skillSums[skill]/counted):0}<br>`;
+  }
+  container.innerHTML = html;
 }
 
 window.addEventListener('load', loadAllPlayers);
