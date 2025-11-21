@@ -1,328 +1,219 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>OSRS Player Stats Tracker</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #000; /* black page background */
-      padding: 20px;
-      color: #fff; /* default text */
-    }
-
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      background: #111; /* dark container */
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(255,255,255,0.05);
-    }
-
-    h1 {
-      margin-bottom: 20px;
-      color: #fff;
-    }
-
-    .controls {
-      margin-bottom: 10px;
-      display: flex;
-      gap: 5px;
-      flex-wrap: wrap;
-    }
-
-    .controls select, .controls button {
-      padding: 4px 8px;
-      font-size: 12px;
-      background: #222;
-      color: #fff;
-      border: 1px solid #444;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    .controls select:hover, .controls button:hover {
-      background: #333;
-    }
-
-    .stats-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-
-    .stats-table th, .stats-table td {
-      border: 1px solid #444;
-      padding: 8px;
-      text-align: center;
-    }
-
-    .stats-table th {
-      background: #222;
-      color: #fff;
-      font-weight: bold;
-      position: relative;
-    }
-
-    .stats-table th .sort-controls {
-      display: flex;
-      gap: 2px;
-      justify-content: center;
-      margin-top: 4px;
-    }
-
-    .stats-table td {
-      background: #1a1a1a;
-      color: #eee;
-    }
-
-    .stats-table tr:nth-child(even) td {
-      background: #2a2a2a; /* stripe for readability */
-    }
-
-    td.player-name {
-      font-weight: bold;
-      color: #fff;
-    }
-
-    .loading {
-      text-align: center;
-      font-style: italic;
-      color: #999;
-    }
-
-    .error {
-      color: #ff4d4d;
-      font-weight: bold;
-    }
-
-    th img {
-      width: 20px;
-      height: 20px;
-      vertical-align: middle;
-      margin-right: 4px;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OSRS Player Stats Tracker</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #000;
+  padding: 20px;
+  color: #fff;
+}
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: #111;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(255,255,255,0.05);
+}
+h1 {
+  margin-bottom: 20px;
+  color: #fff;
+}
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+.stats-table th, .stats-table td {
+  border: 1px solid #444;
+  padding: 8px;
+  text-align: center;
+}
+.stats-table th {
+  background: #222;
+  color: #fff;
+  font-weight: bold;
+  position: relative;
+}
+.stats-table td {
+  background: #1a1a1a;
+  color: #eee;
+}
+.stats-table tr:nth-child(even) td {
+  background: #2a2a2a;
+}
+td.player-name {
+  font-weight: bold;
+}
+.sort-icons {
+  display: inline-block;
+  margin-left: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  vertical-align: middle;
+}
+.sort-icons span {
+  display: block;
+  line-height: 10px;
+}
+th img.skill-icon {
+  width: 20px;
+  height: 20px;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+.loading { text-align:center; font-style:italic; color:#999; }
+.error { color:#ff4d4d; font-weight:bold; }
+</style>
 </head>
 <body>
-  <div class="container">
-    <h1>OSRS Player Stats</h1>
+<div class="container">
+<h1>OSRS Player Stats</h1>
 
-    <table class="stats-table" id="statsTable">
-      <thead id="statsTableHead">
-        <tr>
-          <th>Player</th>
-          <th>⚔️ Attack</th>
-          <th>💪 Strength</th>
-          <th>🛡️ Defence</th>
-          <th>🏹 Ranged</th>
-          <th>✨ Magic</th>
-          <th>🙏 Prayer</th>
-          <th>❤️ Hitpoints</th>
-          <th>⚔️ Combat</th>
-          <th>🏆 Total Level</th>
-        </tr>
-        <tr class="controls">
-          <th></th>
-          <th>
-            <select data-skill="attack" class="columnSort">
-              <option value="desc">High → Low</option>
-              <option value="asc">Low → High</option>
-            </select>
-          </th>
-          <th>
-            <select data-skill="strength" class="columnSort">
-              <option value="desc">High → Low</option>
-              <option value="asc">Low → High</option>
-            </select>
-          </th>
-          <th>
-            <select data-skill="defence" class="columnSort">
-              <option value="desc">High → Low</option>
-              <option value="asc">Low → High</option>
-            </select>
-          </th>
-          <th>
-            <select data-skill="ranged" class="columnSort">
-              <option value="desc">High → Low</option>
-              <option value="asc">Low → High</option>
-            </select>
-          </th>
-          <th>
-            <select data-skill="magic" class="columnSort">
-              <option value="desc">High → Low</option>
-              <option value="asc">Low → High</option>
-            </select>
-          </th>
-          <th>
-            <select data-skill="prayer" class="columnSort">
-              <option value="desc">High → Low</option>
-              <option value="asc">Low → High</option>
-            </select>
-          </th>
-          <th>
-            <select data-skill="hitpoints" class="columnSort">
-              <option value="desc">High → Low</option>
-              <option value="asc">Low → High</option>
-            </select>
-          </th>
-          <th>
-            <select data-skill="combat" class="columnSort">
-              <option value="desc">High → Low</option>
-              <option value="asc">Low → High</option>
-            </select>
-          </th>
-          <th>
-            <select data-skill="total" class="columnSort">
-              <option value="desc">High → Low</option>
-              <option value="asc">Low → High</option>
-            </select>
-          </th>
-        </tr>
-      </thead>
-      <tbody id="statsTableBody">
-        <tr><td colspan="10" class="loading">Loading...</td></tr>
-      </tbody>
-    </table>
-  </div>
+<table class="stats-table" id="statsTable">
+  <thead>
+    <tr>
+      <th>Player</th>
+      <th><img src="https://oldschool.runescape.wiki/images/Attack_icon.png" class="skill-icon" alt="Attack">Attack <span class="sort-icons" data-skill="attack"><span>▲</span><span>▼</span></span></th>
+      <th><img src="https://oldschool.runescape.wiki/images/Strength_icon.png" class="skill-icon" alt="Strength">Strength <span class="sort-icons" data-skill="strength"><span>▲</span><span>▼</span></span></th>
+      <th><img src="https://oldschool.runescape.wiki/images/Defence_icon.png" class="skill-icon" alt="Defence">Defence <span class="sort-icons" data-skill="defence"><span>▲</span><span>▼</span></span></th>
+      <th><img src="https://oldschool.runescape.wiki/images/Ranged_icon.png" class="skill-icon" alt="Ranged">Ranged <span class="sort-icons" data-skill="ranged"><span>▲</span><span>▼</span></span></th>
+      <th><img src="https://oldschool.runescape.wiki/images/Magic_icon.png" class="skill-icon" alt="Magic">Magic <span class="sort-icons" data-skill="magic"><span>▲</span><span>▼</span></span></th>
+      <th><img src="https://oldschool.runescape.wiki/images/Prayer_icon.png" class="skill-icon" alt="Prayer">Prayer <span class="sort-icons" data-skill="prayer"><span>▲</span><span>▼</span></span></th>
+      <th><img src="https://oldschool.runescape.wiki/images/Hitpoints_icon.png" class="skill-icon" alt="Hitpoints">Hitpoints <span class="sort-icons" data-skill="hitpoints"><span>▲</span><span>▼</span></span></th>
+      <th><img src="https://oldschool.runescape.wiki/images/Combat_icon.png" class="skill-icon" alt="Combat">Combat <span class="sort-icons" data-skill="combat"><span>▲</span><span>▼</span></span></th>
+      <th><img src="https://oldschool.runescape.wiki/images/Total_level_icon.png" class="skill-icon" alt="Total Level">Total Level <span class="sort-icons" data-skill="total"><span>▲</span><span>▼</span></span></th>
+    </tr>
+  </thead>
+  <tbody id="statsTableBody">
+    <tr><td colspan="10" class="loading">Loading...</td></tr>
+  </tbody>
+</table>
+</div>
 
-  <script>
-    const PLAYERS = [
-      { name: 'G3ND3RB3ND3R', color: '#FF2900' },
-      { name: '777 Hit Man', color: '#FF00E1' },
+<script>
+const PLAYERS = [
+  { name: 'G3ND3RB3ND3R', color: '#FF2900' },
+  { name: '777 Hit Man', color: '#FF00E1' },
+];
+
+const SKILLS = [
+  'overall','attack','defence','strength','hitpoints',
+  'ranged','prayer','magic','cooking','woodcutting',
+  'fletching','fishing','firemaking','crafting','smithing',
+  'mining','herblore','agility','thieving','slayer',
+  'farming','runecraft','hunter','construction'
+];
+
+let playerStats = {};
+
+function calculateCombat(stats) {
+  const a = stats.attack?.level || 1;
+  const s = stats.strength?.level || 1;
+  const d = stats.defence?.level || 1;
+  const hp = stats.hitpoints?.level || 10;
+  const p = stats.prayer?.level || 1;
+  const r = stats.ranged?.level || 1;
+  const m = stats.magic?.level || 1;
+  const base = 0.25 * (d + hp + Math.floor(p/2));
+  const melee = 0.325 * (a + s);
+  const range = 0.325 * (Math.floor(r/2) + r);
+  const mage = 0.325 * (Math.floor(m/2) + m);
+  return Math.floor(base + Math.max(melee, range, mage));
+}
+
+async function fetchPlayer(playerName){
+  const proxyUrl = 'https://api.allorigins.win/raw?url=' +
+    encodeURIComponent('https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=' + playerName);
+
+  try{
+    const res = await fetch(proxyUrl);
+    if(!res.ok) throw new Error('HTTP status '+res.status);
+    const txt = await res.text();
+    const lines = txt.trim().split('\n');
+    const stats = {};
+    for(let i=0;i<lines.length && i<SKILLS.length;i++){
+      const parts = lines[i].split(',');
+      if(parts.length!==3) continue;
+      stats[SKILLS[i]] = {
+        rank: parseInt(parts[0],10),
+        level: parseInt(parts[1],10),
+        xp: parseInt(parts[2],10)
+      };
+    }
+    stats.combat = calculateCombat(stats);
+    playerStats[playerName] = stats;
+  } catch(err){
+    console.error('Error fetching '+playerName, err);
+    playerStats[playerName] = { error:true, errorMessage: err.message };
+  }
+}
+
+async function loadAllPlayers(){
+  playerStats = {};
+  const promises = PLAYERS.map(p=>fetchPlayer(p.name));
+  await Promise.all(promises);
+  renderTable();
+}
+
+function sortPlayers(arr, sortKey, order){
+  return arr.slice().sort((a,b)=>{
+    const sa = playerStats[a.name];
+    const sb = playerStats[b.name];
+    if(!sa||sa.error) return 1;
+    if(!sb||sb.error) return -1;
+
+    let va,vb;
+    if(sortKey==='total'){ va=sa.overall?.level||0; vb=sb.overall?.level||0; }
+    else if(sortKey==='combat'){ va=sa.combat||0; vb=sb.combat||0; }
+    else{ va=sa[sortKey]?.level||0; vb=sb[sortKey]?.level||0; }
+
+    return order==='asc'? va-vb : vb-va;
+  });
+}
+
+let currentSort = { skill:'total', order:'desc' };
+
+function renderTable(){
+  const tbody=document.getElementById('statsTableBody');
+  const sortedPlayers = sortPlayers(PLAYERS, currentSort.skill, currentSort.order);
+  let html='';
+  for(const p of sortedPlayers){
+    const s = playerStats[p.name];
+    if(!s){
+      html += `<tr><td colspan="10" class="loading">Loading ${p.name}…</td></tr>`;
+      continue;
+    }
+    if(s.error){
+      html += `<tr><td class="player-name" style="color:${p.color}">${p.name}</td><td colspan="9" class="error">Error: ${s.errorMessage||'Failed to load'}</td></tr>`;
+      continue;
+    }
+    const cells = [
+      s.attack?.level, s.strength?.level, s.defence?.level,
+      s.ranged?.level, s.magic?.level, s.prayer?.level,
+      s.hitpoints?.level, s.combat, s.overall?.level
     ];
+    html += `<tr>
+      <td class="player-name" style="color:${p.color}">${p.name}</td>
+      ${cells.map(c=>`<td>${c!==undefined?c:'-'}</td>`).join('')}
+    </tr>`;
+  }
+  tbody.innerHTML=html;
+}
 
-    const SKILLS = [
-      'overall','attack','defence','strength','hitpoints',
-      'ranged','prayer','magic','cooking','woodcutting',
-      'fletching','fishing','firemaking','crafting','smithing',
-      'mining','herblore','agility','thieving','slayer',
-      'farming','runecraft','hunter','construction'
-    ];
+// Add click events for sort icons
+document.querySelectorAll('.sort-icons').forEach(icon=>{
+  const skill = icon.dataset.skill;
+  const spans = icon.querySelectorAll('span');
+  spans[0].addEventListener('click',()=>{ currentSort={skill,order:'asc'}; renderTable(); });
+  spans[1].addEventListener('click',()=>{ currentSort={skill,order:'desc'}; renderTable(); });
+});
 
-    let playerStats = {};
-
-    function calculateCombat(stats) {
-      const a = stats.attack?.level || 1;
-      const s = stats.strength?.level || 1;
-      const d = stats.defence?.level || 1;
-      const hp = stats.hitpoints?.level || 10;
-      const p = stats.prayer?.level || 1;
-      const r = stats.ranged?.level || 1;
-      const m = stats.magic?.level || 1;
-      const base = 0.25 * (d + hp + Math.floor(p / 2));
-      const melee = 0.325 * (a + s);
-      const range = 0.325 * (Math.floor(r / 2) + r);
-      const mage = 0.325 * (Math.floor(m / 2) + m);
-      return Math.floor(base + Math.max(melee, range, mage));
-    }
-
-    async function fetchPlayer(playerName) {
-      const proxyUrl = 'https://api.allorigins.win/raw?url=' +
-        encodeURIComponent('https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=' + playerName);
-
-      try {
-        const res = await fetch(proxyUrl);
-        if (!res.ok) throw new Error('HTTP status ' + res.status);
-        const txt = await res.text();
-        const lines = txt.trim().split('\n');
-        const stats = {};
-        for (let i = 0; i < lines.length && i < SKILLS.length; i++) {
-          const parts = lines[i].split(',');
-          if (parts.length !== 3) continue;
-          stats[SKILLS[i]] = {
-            rank: parseInt(parts[0], 10),
-            level: parseInt(parts[1], 10),
-            xp: parseInt(parts[2], 10),
-          };
-        }
-        stats.combat = calculateCombat(stats);
-        playerStats[playerName] = stats;
-      } catch (err) {
-        console.error('Error fetching ' + playerName, err);
-        playerStats[playerName] = { error: true, errorMessage: err.message };
-      }
-    }
-
-    async function loadAllPlayers() {
-      playerStats = {};
-      const promises = PLAYERS.map(p => fetchPlayer(p.name));
-      await Promise.all(promises);
-      renderTable();
-    }
-
-    function sortPlayers(arr, sortKey, order) {
-      return arr.slice().sort((a, b) => {
-        const sa = playerStats[a.name];
-        const sb = playerStats[b.name];
-        if (!sa || sa.error) return 1;
-        if (!sb || sb.error) return -1;
-
-        let va, vb;
-        if (sortKey === 'total') {
-          va = sa.overall?.level || 0;
-          vb = sb.overall?.level || 0;
-        } else if (sortKey === 'combat') {
-          va = sa.combat || 0;
-          vb = sb.combat || 0;
-        } else if (sortKey === 'name') {
-          return a.name.localeCompare(b.name);
-        } else {
-          va = sa[sortKey]?.level || 0;
-          vb = sb[sortKey]?.level || 0;
-        }
-
-        return order === 'asc' ? va - vb : vb - va;
-      });
-    }
-
-    function renderTable() {
-      const tbody = document.getElementById('statsTableBody');
-      const columnSorts = document.querySelectorAll('.columnSort');
-      let sortedPlayers = PLAYERS;
-
-      columnSorts.forEach(select => {
-        const skill = select.dataset.skill;
-        const order = select.value;
-        sortedPlayers = sortPlayers(sortedPlayers, skill, order);
-      });
-
-      let html = '';
-      for (const p of sortedPlayers) {
-        const s = playerStats[p.name];
-        if (!s) {
-          html += `<tr><td colspan="10" class="loading">Loading ${p.name}…</td></tr>`;
-          continue;
-        }
-
-        if (s.error) {
-          html += `<tr><td class="player-name" style="color:${p.color}">${p.name}</td><td colspan="9" class="error">Error: ${s.errorMessage || 'Failed to load'}</td></tr>`;
-          continue;
-        }
-
-        const cells = [
-          s.attack?.level, s.strength?.level, s.defence?.level,
-          s.ranged?.level, s.magic?.level, s.prayer?.level,
-          s.hitpoints?.level, s.combat, s.overall?.level
-        ];
-
-        html += `<tr>
-          <td class="player-name" style="color:${p.color}">${p.name}</td>
-          ${cells.map(c => `<td>${c !== undefined ? c : '-'}</td>`).join('')}
-        </tr>`;
-      }
-
-      tbody.innerHTML = html;
-    }
-
-    document.querySelectorAll('.columnSort').forEach(select => {
-      select.addEventListener('change', renderTable);
-    });
-
-    window.addEventListener('load', loadAllPlayers);
-  </script>
+window.addEventListener('load', loadAllPlayers);
+</script>
 </body>
 </html>
-
