@@ -5,12 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Chivalry Legion High Scores</title>
 <style>
-body { font-family: Arial,sans-serif; background:#000; color:#fff; margin:0; padding:20px; }
+html, body { margin:0; padding:0; height:100%; background:#000; color:#fff; font-family: Arial,sans-serif; }
+body { display:flex; flex-direction:column; min-height:100vh; }
+#mainContent { flex:1; display:flex; flex-direction:column; max-width:1600px; margin:0 auto; padding:20px; }
 .tabs { display:flex; justify-content:center; gap:5px; margin-bottom:15px; }
 .tab-btn { padding:8px 15px; background:#111; border:none; color:#fff; cursor:pointer; border-radius:5px; }
 .tab-btn.active { background:orange; color:#000; font-weight:bold; }
-.container { display:flex; gap:15px; max-width:1600px; margin:0 auto; }
-.column { background:#111; border-radius:8px; padding:15px; border:1px solid #444; overflow-x:auto; }
+.container { display:flex; gap:15px; flex:1; }
+.column { background:#111; border-radius:8px; padding:15px; border:1px solid #444; overflow-x:auto; overflow-y:auto; }
 .column h2 { text-align:center; color:orange; margin-bottom:10px; }
 .stats-table { width:100%; border-collapse:collapse; }
 .stats-table th, .stats-table td { border:1px solid #444; padding:8px; text-align:center; }
@@ -20,76 +22,81 @@ body { font-family: Arial,sans-serif; background:#000; color:#fff; margin:0; pad
 .stats-table tbody tr:hover { background:#333 !important; }
 .player-name { font-weight:bold; cursor:pointer; }
 .tooltip { display:none; position:fixed; background:#222; padding:10px; border-radius:6px; box-shadow:0 0 10px rgba(255,255,255,0.3); z-index:999; min-width:220px; max-height:400px; overflow-y:auto; color:#fff; font-size:12px; white-space:nowrap; }
-.legend-box { width:180px; }
+.legend-box { width:180px; flex-shrink:0; }
 .legend-box div { font-weight:bold; margin:5px 0; cursor:pointer; }
 .loading { text-align:center; font-style:italic; color:#999; }
 .error { color:#ff4d4d; font-weight:bold; }
 .refresh-btn { display:block; margin:10px auto 20px auto; padding:5px 10px; background:orange; color:#000; font-weight:bold; border:none; border-radius:5px; cursor:pointer; }
 #lastUpdated { text-align:center; font-size:12px; color:#aaa; margin-top:10px; }
-#searchBar { width:50%; margin:0 auto 10px auto; display:block; padding:5px; border-radius:5px; border:1px solid #444; background:#111; color:#fff; }
+#searchBar { display:block; margin:0 auto 15px auto; padding:5px 10px; width:300px; border-radius:5px; border:none; }
 </style>
 </head>
 <body>
 
-<img src="https://i.imgur.com/OU2IAhu.png" alt="Clan Logo" style="display:block;margin:0 auto 10px auto; max-width:150px; cursor:pointer;" id="logo">
+<img src="https://i.imgur.com/OU2IAhu.png" alt="Clan Logo" id="clanLogo" style="display:block;margin:0 auto 10px auto; max-width:150px; cursor:pointer;">
 
-<input type="text" id="searchBar" placeholder="Search player...">
+<input type="text" id="searchBar" placeholder="Search players...">
 
-<div class="tabs">
-  <button class="tab-btn active" data-tab="mains">Mains</button>
-  <button class="tab-btn" data-tab="meds">Meds</button>
-  <button class="tab-btn" data-tab="ironman">Ironman</button>
-  <button class="tab-btn" data-tab="hcim">HCIM</button>
-  <button class="tab-btn" data-tab="uim">UIM</button>
+<div id="mainContent">
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="mains">Mains</button>
+    <button class="tab-btn" data-tab="meds">Meds</button>
+    <button class="tab-btn" data-tab="ironman">Ironman</button>
+    <button class="tab-btn" data-tab="hcim">HCIM</button>
+    <button class="tab-btn" data-tab="uim">UIM</button>
+  </div>
+
+  <div class="container">
+    <!-- Left column: Ranks Legend -->
+    <div class="column legend-box" id="ranksLegend">
+      <h2>Ranks Legend</h2>
+      <div data-rank="#FF2900" style="color:#FF2900;">Leader</div>
+      <div data-rank="#FF00E1" style="color:#FF00E1;">Council</div>
+      <div data-rank="#00FF91" style="color:#00FF91;">Captain</div>
+      <div data-rank="#FFF12E" style="color:#FFF12E;">Legend</div>
+      <div data-rank="#ADA653" style="color:#ADA653;">Elder</div>
+      <div data-rank="#A30090" style="color:#A30090;">Old School</div>
+      <div data-rank="#0E00A3" style="color:#0E00A3;">Senior</div>
+      <div data-rank="#003CFF" style="color:#003CFF;">Member</div>
+      <div data-rank="#00BFFF" style="color:#00BFFF;">Trial</div>
+      <div data-rank="#B6B6B6" style="color:#B6B6B6;">Retired</div>
+      <button class="refresh-btn" id="unfilterRankBtn">Unfilter Rank</button>
+    </div>
+
+    <!-- Middle column: Player table -->
+    <div class="column" style="flex:1;">
+      <table class="stats-table" id="statsTable">
+        <thead>
+          <tr>
+            <th data-sort="name">Name</th>
+            <th data-sort="nickname">Nickname</th>
+            <th data-sort="attack">Attack</th>
+            <th data-sort="strength">Strength</th>
+            <th data-sort="defence">Defence</th>
+            <th data-sort="ranged">Ranged</th>
+            <th data-sort="magic">Magic</th>
+            <th data-sort="prayer">Prayer</th>
+            <th data-sort="combat">Combat</th>
+            <th data-sort="total">Total</th>
+          </tr>
+        </thead>
+        <tbody id="statsTableBody">
+          <tr><td colspan="10" class="loading">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Right column: Average stats -->
+    <div class="column" style="width:250px;">
+      <h2>Average Stats</h2>
+      <div id="averageContent">Loading...</div>
+      <button class="refresh-btn" id="unfilterSkillBtn">Unfilter Skill</button>
+    </div>
+  </div>
+
+  <div id="lastUpdated"></div>
 </div>
 
-<div class="container">
-  <!-- Left column: Ranks Legend -->
-  <div class="column legend-box" id="ranksLegend">
-    <h2>Ranks Legend</h2>
-    <div style="color:#FF2900;" data-rank="Leader">Leader</div>
-    <div style="color:#FF00E1;" data-rank="Council">Council</div>
-    <div style="color:#00FF91;" data-rank="Captain">Captain</div>
-    <div style="color:#FFF12E;" data-rank="Legend">Legend</div>
-    <div style="color:#ADA653;" data-rank="Elder">Elder</div>
-    <div style="color:#A30090;" data-rank="Old School">Old School</div>
-    <div style="color:#0E00A3;" data-rank="Senior">Senior</div>
-    <div style="color:#003CFF;" data-rank="Member">Member</div>
-    <div style="color:#00BFFF;" data-rank="Trial">Trial</div>
-    <div style="color:#B6B6B6;" data-rank="Retired">Retired</div>
-    <button class="refresh-btn" id="unfilterRankBtn">Unfilter</button>
-  </div>
-
-  <!-- Middle column: Player table -->
-  <div class="column" style="flex:1;">
-    <table class="stats-table" id="statsTable">
-      <thead>
-        <tr>
-          <th data-sort="name">Name</th>
-          <th data-sort="nickname">Nickname</th>
-          <th data-sort="attack">Attack</th>
-          <th data-sort="strength">Strength</th>
-          <th data-sort="defence">Defence</th>
-          <th data-sort="ranged">Ranged</th>
-          <th data-sort="magic">Magic</th>
-          <th data-sort="prayer">Prayer</th>
-          <th data-sort="combat">Combat</th>
-          <th data-sort="total">Total</th>
-        </tr>
-      </thead>
-      <tbody id="statsTableBody"><tr><td colspan="10" class="loading">Loading...</td></tr></tbody>
-    </table>
-  </div>
-
-  <!-- Right column: Average stats -->
-  <div class="column" style="width:250px;">
-    <h2>Average Stats</h2>
-    <div id="averageContent">Loading...</div>
-    <button class="refresh-btn" id="unfilterSkillBtn">Unfilter</button>
-  </div>
-</div>
-
-<div id="lastUpdated"></div>
 <div class="tooltip" id="tooltip"></div>
 
 <script>
@@ -122,12 +129,12 @@ const TABS = {
 const SKILLS = ['overall','attack','strength','defence','hitpoints','ranged','prayer','magic','cooking','woodcutting','fletching','fishing','firemaking','crafting','smithing','mining','herblore','agility','thieving','slayer','farming','runecraft','hunter','construction','sailing'];
 const SKILL_ICONS = { attack:'⚔️', strength:'💪', defence:'🛡️', ranged:'🏹', magic:'✨', prayer:'🙏', hitpoints:'❤️', combat:'⚔️', cooking:'🍳', woodcutting:'🪓', fletching:'🏹', fishing:'🎣', firemaking:'🔥', crafting:'🧵', smithing:'🔨', mining:'⛏️', herblore:'🌿', agility:'🏃', thieving:'🗝️', slayer:'👹', farming:'🌾', runecraft:'📜', hunter:'🏹', construction:'🏠', sailing:'⛵'};
 
-let currentTab = 'mains';
-let playerStats = {};
-let currentSort = {skill:'total', order:'desc'};
-let rankFilter = null;
-let skillFilter = null;
-let searchFilter = '';
+let currentTab='mains';
+let playerStats={};
+let currentSort={skill:'total',order:'desc'};
+let rankFilter=null;
+let skillFilter=null;
+let searchTerm='';
 
 function calculateCombat(stats){
   const a=stats.attack?.level||1,s=stats.strength?.level||1,d=stats.defence?.level||1,hp=stats.hitpoints?.level||10;
@@ -185,21 +192,18 @@ function renderTable(){
   const tbody=document.getElementById('statsTableBody');
   let players = TABS[currentTab];
   if(rankFilter) players = players.filter(p=>p.color===rankFilter);
-  if(searchFilter) players = players.filter(p=>p.name.toLowerCase().includes(searchFilter.toLowerCase()));
+  if(searchTerm) players = players.filter(p=>p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.nickname.toLowerCase().includes(searchTerm.toLowerCase()));
   if(skillFilter){
-    renderAverageBox(); // skill overlay
-    tbody.innerHTML='';
-    return;
+    players = players.map(p=>({...p, skillStat:playerStats[p.name][skillFilter]})).filter(p=>p.skillStat).sort((a,b)=>b.skillStat.xp-a.skillStat.xp);
   }
   players = sortPlayers(players,currentSort.skill,currentSort.order);
-
   let html='';
   for(const p of players){
     const s = playerStats[p.name];
     if(!s){ html+=`<tr><td colspan="10" class="loading">Loading ${p.name}…</td></tr>`; continue; }
     if(s.error){ html+=`<tr><td style="color:${p.color}">${p.name}</td><td>${p.nickname}</td><td colspan="8" class="error">Name not found</td></tr>`; continue; }
     html+=`<tr>
-      <td class="player-name" style="color:${p.color}">${p.name}</td>
+      <td style="color:${p.color}" class="player-name">${p.name}</td>
       <td>${p.nickname}</td>
       <td>${s.attack?.level||0}</td>
       <td>${s.strength?.level||0}</td>
@@ -229,71 +233,65 @@ function renderAverageBox(){
     total.combat+=s.combat||0;
     total.total+=s.overall?.level||0;
   }
-
-  if(skillFilter){
-    let html = `<h3>${skillFilter.charAt(0).toUpperCase()+skillFilter.slice(1)} Stats</h3>`;
-    html += `<table style="width:100%; text-align:center;"><tr><th>Name</th><th>Nickname</th><th>Level</th><th>XP</th></tr>`;
-    let skillPlayers = players.map(p=>({...p, skillStat:playerStats[p.name][skillFilter]}))
-                              .filter(p=>p.skillStat)
-                              .sort((a,b)=>b.skillStat.xp - a.skillStat.xp);
-    skillPlayers.forEach(p=>{
-        html+=`<tr>
-          <td style="color:${p.color}">${p.name}</td>
-          <td>${p.nickname}</td>
-          <td>${p.skillStat.level}</td>
-          <td>${p.skillStat.xp}</td>
-        </tr>`;
-    });
-    html += `</table>`;
-    container.innerHTML = html;
-    return;
-  }
-
   let html='';
-  for(const skill of SKILLS){
-    const avg=count?Math.round(total[skill]/count):0;
-    html+=`<div style="cursor:pointer;" onclick="skillFilter='${skill}';renderAverageBox(); renderTable();">${SKILL_ICONS[skill]||''} ${skill.charAt(0).toUpperCase()+skill.slice(1)}: ${avg}</div>`;
+  if(skillFilter){
+    html+='<h3>Players by '+skillFilter+'</h3>';
+    const filtered = players.map(p=>({...p, skillStat:playerStats[p.name][skillFilter]})).filter(p=>p.skillStat).sort((a,b)=>b.skillStat.xp-a.skillStat.xp);
+    filtered.forEach(p=>{
+      html+=`<div>${p.name} - ${p.nickname} - Lvl: ${p.skillStat.level} - XP: ${p.skillStat.xp}</div>`;
+    });
+  } else {
+    for(const skill of SKILLS){
+      const avg=count?Math.round(total[skill]/count):0;
+      html+=`<div style="cursor:pointer;" onclick="skillFilter='${skill}';renderTable(); renderAverageBox();">${SKILL_ICONS[skill]||''} ${skill.charAt(0).toUpperCase()+skill.slice(1)}: ${avg}</div>`;
+    }
+    html+=`<div>Average Combat: ${count?Math.round(total.combat/count):0}</div>`;
+    html+=`<div>Average Total: ${count?Math.round(total.total/count):0}</div>`;
   }
-  html+=`<div>Average Combat: ${count?Math.round(total.combat/count):0}</div>`;
-  html+=`<div>Average Total: ${count?Math.round(total.total/count):0}</div>`;
   container.innerHTML=html;
 }
 
+// Tooltip
 const tooltip=document.getElementById('tooltip');
+function showTooltip(e,playerName,stats){
+  let html=`<strong>${playerName}</strong><br>`;
+  if(stats.error) html+='Name not found';
+  else{
+    for(const skill of SKILLS){
+      html+=`${SKILL_ICONS[skill]||''} ${skill.charAt(0).toUpperCase()+skill.slice(1)}: ${stats[skill]?.level||0} (XP: ${stats[skill]?.xp||0})<br>`;
+    }
+    html+=`Combat: ${stats.combat}<br>Total: ${stats.overall?.level||0}`;
+  }
+  tooltip.innerHTML=html;
+  tooltip.style.display='block';
+  tooltip.style.top=`${e.clientY+10}px`;
+  tooltip.style.left=`${e.clientX+10}px`;
+}
+function moveTooltip(e){ tooltip.style.top=`${e.clientY+10}px`; tooltip.style.left=`${e.clientX+10}px`; }
+function hideTooltip(){ tooltip.style.display='none'; }
 function attachTooltip(){
   document.querySelectorAll('.player-name').forEach(td=>{
     td.addEventListener('mouseenter', e=>{
-      const name = td.textContent;
-      const stats = playerStats[name];
-      if(!stats) return;
-      let html = `<strong>${name}</strong><br>`;
-      for(const skill of SKILLS){
-          html+=`${SKILL_ICONS[skill]||''} ${skill.charAt(0).toUpperCase()+skill.slice(1)}: ${stats[skill]?.level||0} (XP: ${stats[skill]?.xp||0})<br>`;
-      }
-      html+=`Combat: ${stats.combat}<br>Total: ${stats.overall?.level||0}`;
-      tooltip.innerHTML = html;
-      tooltip.style.display='block';
-      tooltip.style.top=`${e.clientY+10}px`;
-      tooltip.style.left=`${e.clientX+10}px`;
+      const name=td.textContent;
+      showTooltip(e,name,playerStats[name]);
     });
-    td.addEventListener('mousemove', e=>{
-      tooltip.style.top=`${e.clientY+10}px`;
-      tooltip.style.left=`${e.clientX+10}px`;
-    });
-    td.addEventListener('mouseleave', ()=>{ tooltip.style.display='none'; });
+    td.addEventListener('mousemove', moveTooltip);
+    td.addEventListener('mouseleave', hideTooltip);
   });
 }
 
-// Tab buttons
+// Event listeners
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
+    skillFilter=null;
+    rankFilter=null;
+    searchTerm='';
+    document.getElementById('searchBar').value='';
     loadTab(btn.dataset.tab);
   });
 });
-
-// Table sorting
 document.querySelectorAll('th').forEach(th=>{
   th.addEventListener('click',()=>{ 
     const key=th.dataset.sort; 
@@ -302,27 +300,12 @@ document.querySelectorAll('th').forEach(th=>{
     renderTable();
   });
 });
-
-// Rank filter
-document.querySelectorAll('#ranksLegend div[data-rank]').forEach(div=>{
-  div.addEventListener('click', ()=>{
-    rankFilter = div.style.color;
-    renderTable();
-  });
-});
 document.getElementById('unfilterRankBtn').addEventListener('click',()=>{ rankFilter=null; renderTable(); });
+document.getElementById('unfilterSkillBtn').addEventListener('click',()=>{ skillFilter=null; renderTable(); renderAverageBox(); });
+document.getElementById('searchBar').addEventListener('input', e=>{ searchTerm=e.target.value; renderTable(); });
+document.getElementById('clanLogo').addEventListener('click', ()=> loadTab(currentTab));
 
-// Skill unfilter
-document.getElementById('unfilterSkillBtn').addEventListener('click',()=>{ skillFilter=null; renderAverageBox(); renderTable(); });
-
-// Search
-document.getElementById('searchBar').addEventListener('input',(e)=>{ searchFilter=e.target.value.trim(); renderTable(); });
-
-// Logo click refresh
-document.getElementById('logo').addEventListener('click',()=>{ loadTab(currentTab); });
-
-// Load default tab
-loadTab(currentTab);
+window.addEventListener('load',()=>loadTab('mains'));
 </script>
 
 </body>
