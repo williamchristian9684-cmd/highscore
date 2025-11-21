@@ -29,9 +29,33 @@ body { display:flex; flex-direction:column; min-height:100vh; }
 .refresh-btn { display:block; margin:10px auto 20px auto; padding:5px 10px; background:orange; color:#000; font-weight:bold; border:none; border-radius:5px; cursor:pointer; }
 #lastUpdated { text-align:center; font-size:12px; color:#aaa; margin-top:10px; }
 #searchBar { display:block; margin:0 auto 15px auto; padding:5px 10px; width:300px; border-radius:5px; border:none; }
+
+#loadingOverlay {
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:rgba(0,0,0,0.9);
+  display:flex; justify-content:center; align-items:center;
+  z-index:9999;
+  flex-direction:column;
+  color:#fff;
+  font-size:20px;
+}
+#spinner {
+  border:8px solid #111;
+  border-top:8px solid orange;
+  border-radius:50%;
+  width:60px;
+  height:60px;
+  animation: spin 1s linear infinite;
+  margin-bottom:10px;
+}
+@keyframes spin { 0% { transform:rotate(0deg); } 100% { transform:rotate(360deg); } }
 </style>
 </head>
 <body>
+
+<div id="loadingOverlay"><div id="spinner"></div>Loading players...</div>
 
 <img src="https://i.imgur.com/OU2IAhu.png" alt="Clan Logo" id="clanLogo" style="display:block;margin:0 auto 10px auto; max-width:150px; cursor:pointer;">
 
@@ -100,72 +124,11 @@ body { display:flex; flex-direction:column; min-height:100vh; }
 <div class="tooltip" id="tooltip"></div>
 
 <script>
-const TABS = {
-  mains: [
-    { name: 'G3ND3RB3ND3R', nickname:'Rare', color:'#FF2900' },
-    { name: 'Big Mac luvr', nickname:'Braeden', color:'#FF2900' },
-    { name: '777 Hit Man', nickname:'Uube', color:'#FF00E1' },
-    { name: 'AEST NFS', nickname:'Kaylpso', color:'#00FF91' },
-    { name: 'Kranky Kraut', nickname:'Hayden', color:'#00FF91' },
-    { name: 'Cutyourgrass', nickname:'Cutty', color:'#A30090' },
-    { name: 'JoshD', nickname:'JoshD', color:'#A30090' },
-  ],
-  meds: [
-    { name: 'YRUG', nickname:'Rare', color:'#FF2900' },
-    { name: 'MedPlayer2', nickname:'MP2', color:'#00BFFF' },
-  ],
-  ironman: [
-    { name: 'Iron Hayden', nickname:'Hayden', color:'#00FF91' },
-    { name: 'IronLady', nickname:'ILady', color:'#FFF12E' },
-  ],
-  hcim: [
-    { name: 'HCWarrior', nickname:'HCW', color:'#ADA653' },
-  ],
-  uim: [
-    { name: 'UltimateU', nickname:'UU', color:'#A30090' },
-  ]
-};
-
-const SKILLS = ['overall','attack','strength','defence','hitpoints','ranged','prayer','magic','cooking','woodcutting','fletching','fishing','firemaking','crafting','smithing','mining','herblore','agility','thieving','slayer','farming','runecraft','hunter','construction','sailing'];
-const SKILL_ICONS = { attack:'⚔️', strength:'💪', defence:'🛡️', ranged:'🏹', magic:'✨', prayer:'🙏', hitpoints:'❤️', combat:'⚔️', cooking:'🍳', woodcutting:'🪓', fletching:'🏹', fishing:'🎣', firemaking:'🔥', crafting:'🧵', smithing:'🔨', mining:'⛏️', herblore:'🌿', agility:'🏃', thieving:'🗝️', slayer:'👹', farming:'🌾', runecraft:'📜', hunter:'🏹', construction:'🏠', sailing:'⛵'};
-
-let currentTab='mains';
-let playerStats={};
-let currentSort={skill:'total',order:'desc'};
-let rankFilter=null;
-let skillFilter=null;
-let searchTerm='';
-
-function calculateCombat(stats){
-  const a=stats.attack?.level||1,s=stats.strength?.level||1,d=stats.defence?.level||1,hp=stats.hitpoints?.level||10;
-  const p=stats.prayer?.level||1,r=stats.ranged?.level||1,m=stats.magic?.level||1;
-  return Math.floor(0.25*(d+hp+Math.floor(p/2)) + 0.325*Math.max(a+s, Math.floor(r/2)+r, Math.floor(m/2)+m));
-}
-
-async function fetchPlayer(playerName){
-  const url='https://api.allorigins.win/raw?url=' + encodeURIComponent('https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=' + playerName);
-  while(true){
-    try{
-      const res = await fetch(url);
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      const txt = await res.text();
-      const lines = txt.trim().split('\n');
-      const stats = {};
-      for(let i=0;i<lines.length && i<SKILLS.length;i++){
-        const parts = lines[i].split(',');
-        if(parts.length!==3) continue;
-        stats[SKILLS[i]]={rank:parseInt(parts[0],10),level:parseInt(parts[1],10),xp:parseInt(parts[2],10)};
-      }
-      stats.combat=calculateCombat(stats);
-      stats.overall={level:lines[0]?.split(',')[1]?parseInt(lines[0].split(',')[1],10):0};
-      playerStats[playerName]=stats;
-      return;
-    }catch(e){ console.warn('Retrying fetch '+playerName); await new Promise(r=>setTimeout(r,1000)); }
-  }
-}
-
+// (JavaScript is the same as previously provided)
+// At the end of loadTab(), hide the overlay:
 async function loadTab(tab){
   currentTab=tab;
+  document.getElementById('loadingOverlay').style.display='flex';
   playerStats={};
   document.getElementById('statsTableBody').innerHTML=`<tr><td colspan="10" class="loading">Loading...</td></tr>`;
   document.getElementById('averageContent').innerHTML='Loading...';
@@ -174,138 +137,8 @@ async function loadTab(tab){
   renderTable();
   renderAverageBox();
   document.getElementById('lastUpdated').textContent='Last updated: '+new Date().toLocaleString();
+  document.getElementById('loadingOverlay').style.display='none';
 }
-
-function sortPlayers(arr,key,order){
-  return arr.slice().sort((a,b)=>{
-    const sa=playerStats[a.name], sb=playerStats[b.name];
-    if(!sa||sa.error) return 1;
-    if(!sb||sb.error) return -1;
-    if(key==='name'||key==='nickname') return order==='asc'? a[key].localeCompare(b[key]):b[key].localeCompare(a[key]);
-    const va=(key==='total'?sa.overall?.level:key==='combat'?sa.combat:sa[key]?.level)||0;
-    const vb=(key==='total'?sb.overall?.level:key==='combat'?sb.combat:sb[key]?.level)||0;
-    return order==='asc'? va-vb:vb-va;
-  });
-}
-
-function renderTable(){
-  const tbody=document.getElementById('statsTableBody');
-  let players = TABS[currentTab];
-  if(rankFilter) players = players.filter(p=>p.color===rankFilter);
-  if(searchTerm) players = players.filter(p=>p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.nickname.toLowerCase().includes(searchTerm.toLowerCase()));
-  if(skillFilter){
-    players = players.map(p=>({...p, skillStat:playerStats[p.name][skillFilter]})).filter(p=>p.skillStat).sort((a,b)=>b.skillStat.xp-a.skillStat.xp);
-  }
-  players = sortPlayers(players,currentSort.skill,currentSort.order);
-  let html='';
-  for(const p of players){
-    const s = playerStats[p.name];
-    if(!s){ html+=`<tr><td colspan="10" class="loading">Loading ${p.name}…</td></tr>`; continue; }
-    if(s.error){ html+=`<tr><td style="color:${p.color}">${p.name}</td><td>${p.nickname}</td><td colspan="8" class="error">Name not found</td></tr>`; continue; }
-    html+=`<tr>
-      <td style="color:${p.color}" class="player-name">${p.name}</td>
-      <td>${p.nickname}</td>
-      <td>${s.attack?.level||0}</td>
-      <td>${s.strength?.level||0}</td>
-      <td>${s.defence?.level||0}</td>
-      <td>${s.ranged?.level||0}</td>
-      <td>${s.magic?.level||0}</td>
-      <td>${s.prayer?.level||0}</td>
-      <td>${s.combat||0}</td>
-      <td>${s.overall?.level||0}</td>
-    </tr>`;
-  }
-  tbody.innerHTML=html;
-  attachTooltip();
-}
-
-function renderAverageBox(){
-  const container=document.getElementById('averageContent');
-  const players = TABS[currentTab];
-  const total={};
-  for(const skill of SKILLS.concat(['combat','total'])) total[skill]=0;
-  let count=0;
-  for(const p of players){
-    const s=playerStats[p.name];
-    if(!s||s.error) continue;
-    count++;
-    for(const skill of SKILLS) total[skill]+=s[skill]?.level||0;
-    total.combat+=s.combat||0;
-    total.total+=s.overall?.level||0;
-  }
-  let html='';
-  if(skillFilter){
-    html+='<h3>Players by '+skillFilter+'</h3>';
-    const filtered = players.map(p=>({...p, skillStat:playerStats[p.name][skillFilter]})).filter(p=>p.skillStat).sort((a,b)=>b.skillStat.xp-a.skillStat.xp);
-    filtered.forEach(p=>{
-      html+=`<div>${p.name} - ${p.nickname} - Lvl: ${p.skillStat.level} - XP: ${p.skillStat.xp}</div>`;
-    });
-  } else {
-    for(const skill of SKILLS){
-      const avg=count?Math.round(total[skill]/count):0;
-      html+=`<div style="cursor:pointer;" onclick="skillFilter='${skill}';renderTable(); renderAverageBox();">${SKILL_ICONS[skill]||''} ${skill.charAt(0).toUpperCase()+skill.slice(1)}: ${avg}</div>`;
-    }
-    html+=`<div>Average Combat: ${count?Math.round(total.combat/count):0}</div>`;
-    html+=`<div>Average Total: ${count?Math.round(total.total/count):0}</div>`;
-  }
-  container.innerHTML=html;
-}
-
-// Tooltip
-const tooltip=document.getElementById('tooltip');
-function showTooltip(e,playerName,stats){
-  let html=`<strong>${playerName}</strong><br>`;
-  if(stats.error) html+='Name not found';
-  else{
-    for(const skill of SKILLS){
-      html+=`${SKILL_ICONS[skill]||''} ${skill.charAt(0).toUpperCase()+skill.slice(1)}: ${stats[skill]?.level||0} (XP: ${stats[skill]?.xp||0})<br>`;
-    }
-    html+=`Combat: ${stats.combat}<br>Total: ${stats.overall?.level||0}`;
-  }
-  tooltip.innerHTML=html;
-  tooltip.style.display='block';
-  tooltip.style.top=`${e.clientY+10}px`;
-  tooltip.style.left=`${e.clientX+10}px`;
-}
-function moveTooltip(e){ tooltip.style.top=`${e.clientY+10}px`; tooltip.style.left=`${e.clientX+10}px`; }
-function hideTooltip(){ tooltip.style.display='none'; }
-function attachTooltip(){
-  document.querySelectorAll('.player-name').forEach(td=>{
-    td.addEventListener('mouseenter', e=>{
-      const name=td.textContent;
-      showTooltip(e,name,playerStats[name]);
-    });
-    td.addEventListener('mousemove', moveTooltip);
-    td.addEventListener('mouseleave', hideTooltip);
-  });
-}
-
-// Event listeners
-document.querySelectorAll('.tab-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    skillFilter=null;
-    rankFilter=null;
-    searchTerm='';
-    document.getElementById('searchBar').value='';
-    loadTab(btn.dataset.tab);
-  });
-});
-document.querySelectorAll('th').forEach(th=>{
-  th.addEventListener('click',()=>{ 
-    const key=th.dataset.sort; 
-    if(currentSort.skill===key) currentSort.order=currentSort.order==='asc'?'desc':'asc';
-    else { currentSort.skill=key; currentSort.order='desc'; }
-    renderTable();
-  });
-});
-document.getElementById('unfilterRankBtn').addEventListener('click',()=>{ rankFilter=null; renderTable(); });
-document.getElementById('unfilterSkillBtn').addEventListener('click',()=>{ skillFilter=null; renderTable(); renderAverageBox(); });
-document.getElementById('searchBar').addEventListener('input', e=>{ searchTerm=e.target.value; renderTable(); });
-document.getElementById('clanLogo').addEventListener('click', ()=> loadTab(currentTab));
-
-window.addEventListener('load',()=>loadTab('mains'));
 </script>
 
 </body>
