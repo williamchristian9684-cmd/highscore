@@ -13,12 +13,23 @@ body {
 }
 
 .container {
-  max-width: 1200px;
+  display: flex;
+  max-width: 1400px;
   margin: 0 auto;
+  gap: 20px;
+}
+
+.main-table {
+  flex: 3;
+}
+
+.summary-box {
+  flex: 1;
   background: #111;
-  padding: 20px;
+  border: 1px solid #444;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(255,255,255,0.05);
+  padding: 20px;
+  height: fit-content;
 }
 
 h1 {
@@ -100,30 +111,35 @@ td.player-name {
 <body>
 
 <div class="container">
-<h1>Chivalry Legion High Scores</h1>
-<button id="refreshBtn">Refresh</button>
+  <div class="main-table">
+    <h1>Chivalry Legion High Scores</h1>
+    <button id="refreshBtn">Refresh</button>
 
-<table class="stats-table" id="statsTable">
-  <thead>
-    <tr>
-      <th>Player 
-        <span class="sort-icons" data-skill="name"><span>▲</span><span>▼</span></span>
-      </th>
-      <th>⚔️ Attack <span class="sort-icons" data-skill="attack"><span>▲</span><span>▼</span></span></th>
-      <th>💪 Strength <span class="sort-icons" data-skill="strength"><span>▲</span><span>▼</span></span></th>
-      <th>🛡️ Defence <span class="sort-icons" data-skill="defence"><span>▲</span><span>▼</span></span></th>
-      <th>🏹 Ranged <span class="sort-icons" data-skill="ranged"><span>▲</span><span>▼</span></span></th>
-      <th>✨ Magic <span class="sort-icons" data-skill="magic"><span>▲</span><span>▼</span></span></th>
-      <th>🙏 Prayer <span class="sort-icons" data-skill="prayer"><span>▲</span><span>▼</span></span></th>
-      <th>❤️ Hitpoints <span class="sort-icons" data-skill="hitpoints"><span>▲</span><span>▼</span></span></th>
-      <th>⚔️ Combat <span class="sort-icons" data-skill="combat"><span>▲</span><span>▼</span></span></th>
-      <th>Total Level <span class="sort-icons" data-skill="total"><span>▲</span><span>▼</span></span></th>
-    </tr>
-  </thead>
-  <tbody id="statsTableBody">
-    <tr><td colspan="10" class="loading">Loading...</td></tr>
-  </tbody>
-</table>
+    <table class="stats-table" id="statsTable">
+      <thead>
+        <tr>
+          <th>Player <span class="sort-icons" data-skill="name"><span>▲</span><span>▼</span></span></th>
+          <th>⚔️ Attack <span class="sort-icons" data-skill="attack"><span>▲</span><span>▼</span></span></th>
+          <th>💪 Strength <span class="sort-icons" data-skill="strength"><span>▲</span><span>▼</span></span></th>
+          <th>🛡️ Defence <span class="sort-icons" data-skill="defence"><span>▲</span><span>▼</span></span></th>
+          <th>🏹 Ranged <span class="sort-icons" data-skill="ranged"><span>▲</span><span>▼</span></span></th>
+          <th>✨ Magic <span class="sort-icons" data-skill="magic"><span>▲</span><span>▼</span></span></th>
+          <th>🙏 Prayer <span class="sort-icons" data-skill="prayer"><span>▲</span><span>▼</span></span></th>
+          <th>❤️ Hitpoints <span class="sort-icons" data-skill="hitpoints"><span>▲</span><span>▼</span></span></th>
+          <th>⚔️ Combat <span class="sort-icons" data-skill="combat"><span>▲</span><span>▼</span></span></th>
+          <th>Total Level <span class="sort-icons" data-skill="total"><span>▲</span><span>▼</span></span></th>
+        </tr>
+      </thead>
+      <tbody id="statsTableBody">
+        <tr><td colspan="10" class="loading">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="summary-box" id="summaryBox">
+    <h2>Average Stats</h2>
+    <p>Loading...</p>
+  </div>
 </div>
 
 <script>
@@ -160,10 +176,8 @@ function calculateCombat(stats) {
 
 async function fetchPlayer(playerName){
   const urls = [
-    'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=' + playerName),
-    'https://cors-anywhere.herokuapp.com/https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=' + playerName
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=' + playerName)
   ];
-
   for (let url of urls) {
     try{
       const res = await fetch(url);
@@ -184,7 +198,7 @@ async function fetchPlayer(playerName){
       playerStats[playerName] = stats;
       return;
     } catch(err){
-      console.warn('Fetch failed, trying next source for', playerName);
+      console.warn('Failed to fetch', playerName);
     }
   }
   playerStats[playerName] = { error:true };
@@ -195,6 +209,7 @@ async function loadAllPlayers(){
   const promises = PLAYERS.map(p=>fetchPlayer(p.name));
   await Promise.all(promises);
   renderTable();
+  updateSummary();
 }
 
 function sortPlayers(arr, sortKey, order){
@@ -203,7 +218,6 @@ function sortPlayers(arr, sortKey, order){
     const sb = playerStats[b.name];
     if(!sa||sa.error) return 1;
     if(!sb||sb.error) return -1;
-
     if(sortKey==='name') return order==='asc'? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
 
     let va,vb;
@@ -238,10 +252,10 @@ function renderTable(){
       s.hitpoints?.level, s.combat, s.overall?.level
     ];
 
-    // Build tooltip HTML for all skills
+    // Tooltip for all skills
     let tooltipHtml = '<strong>Full Stats:</strong><br>';
     for(const skill in s){
-      if(skill !== 'combat'){
+      if(skill!=='combat'){
         tooltipHtml += `${skill.charAt(0).toUpperCase() + skill.slice(1)}: ${s[skill].level} <br>`;
       }
     }
@@ -249,29 +263,68 @@ function renderTable(){
 
     html += `<tr>
       <td class="player-name" style="color:${p.color}">
-        ${p.name}
-        <div class="tooltip">${tooltipHtml}</div>
+        ${p.name}<div class="tooltip">${tooltipHtml}</div>
       </td>
       ${cells.map(c=>`<td>${c!==undefined?c:'-'}</td>`).join('')}
     </tr>`;
   }
   tbody.innerHTML=html;
 
-  // Adjust tooltip position
+  // Tooltip positioning
   document.querySelectorAll('.player-name').forEach(cell => {
     const tooltip = cell.querySelector('.tooltip');
+    cell.addEventListener('mouseenter', ()=>{ tooltip.style.display='block'; });
+    cell.addEventListener('mouseleave', ()=>{ tooltip.style.display='none'; });
     cell.addEventListener('mousemove', e => {
       const rect = tooltip.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
-      let left = 105; // default
+      let left = 105;
       if(e.clientX + rect.width + 20 > viewportWidth){
-        left = -rect.width - 10; // move to left of name
+        left = -rect.width - 10;
       }
       tooltip.style.left = left + 'px';
       tooltip.style.top = '50%';
       tooltip.style.transform = 'translateY(-50%)';
     });
   });
+}
+
+// Update average summary box
+function updateSummary(){
+  const box = document.getElementById('summaryBox');
+  let totals = {
+    attack:0,strength:0,defence:0,ranged:0,magic:0,prayer:0,hitpoints:0,combat:0,total:0
+  };
+  let count=0;
+  PLAYERS.forEach(p=>{
+    const s = playerStats[p.name];
+    if(s && !s.error){
+      totals.attack += s.attack?.level||0;
+      totals.strength += s.strength?.level||0;
+      totals.defence += s.defence?.level||0;
+      totals.ranged += s.ranged?.level||0;
+      totals.magic += s.magic?.level||0;
+      totals.prayer += s.prayer?.level||0;
+      totals.hitpoints += s.hitpoints?.level||0;
+      totals.combat += s.combat||0;
+      totals.total += s.overall?.level||0;
+      count++;
+    }
+  });
+  if(count===0){
+    box.innerHTML = '<h2>Average Stats</h2><p>No data available</p>';
+    return;
+  }
+  box.innerHTML = `<h2>Average Stats</h2>
+    <p>Attack: ${Math.round(totals.attack/count)}</p>
+    <p>Strength: ${Math.round(totals.strength/count)}</p>
+    <p>Defence: ${Math.round(totals.defence/count)}</p>
+    <p>Ranged: ${Math.round(totals.ranged/count)}</p>
+    <p>Magic: ${Math.round(totals.magic/count)}</p>
+    <p>Prayer: ${Math.round(totals.prayer/count)}</p>
+    <p>Hitpoints: ${Math.round(totals.hitpoints/count)}</p>
+    <p>Combat: ${Math.round(totals.combat/count)}</p>
+    <p>Total Level: ${Math.round(totals.total/count)}</p>`;
 }
 
 // Sort icon click events
