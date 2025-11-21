@@ -80,7 +80,7 @@ th img.skill-icon { width: 20px; height: 20px; vertical-align: middle; margin-ri
 .loading { text-align:center; font-style:italic; color:#999; }
 .error { color:#ff4d4d; font-weight:bold; }
 
-/* Tooltip box */
+/* Tooltip card */
 .tooltip {
   display: none;
   position: absolute;
@@ -91,8 +91,26 @@ th img.skill-icon { width: 20px; height: 20px; vertical-align: middle; margin-ri
   border-radius: 6px;
   z-index: 100;
   font-size: 12px;
-  max-width: 200px;
-  white-space: pre-line;
+  max-width: 220px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+.tooltip h4 {
+  margin: 0 0 6px 0;
+  font-size: 14px;
+  text-align: center;
+  border-bottom: 1px solid #444;
+  padding-bottom: 4px;
+}
+.tooltip .stat-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.tooltip .stat-row img {
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+  margin-right: 4px;
 }
 </style>
 </head>
@@ -131,11 +149,15 @@ const PLAYERS = [
 ];
 
 const SKILLS = [
-  'overall','attack','defence','strength','hitpoints',
-  'ranged','prayer','magic','cooking','woodcutting',
-  'fletching','fishing','firemaking','crafting','smithing',
-  'mining','herblore','agility','thieving','slayer',
-  'farming','runecraft','hunter','construction'
+  {key:'overall', icon:'https://oldschool.runescape.wiki/images/Overall_icon.png'},
+  {key:'attack', icon:'https://oldschool.runescape.wiki/images/Attack_icon.png'},
+  {key:'strength', icon:'https://oldschool.runescape.wiki/images/Strength_icon.png'},
+  {key:'defence', icon:'https://oldschool.runescape.wiki/images/Defence_icon.png'},
+  {key:'hitpoints', icon:'https://oldschool.runescape.wiki/images/Hitpoints_icon.png'},
+  {key:'ranged', icon:'https://oldschool.runescape.wiki/images/Ranged_icon.png'},
+  {key:'prayer', icon:'https://oldschool.runescape.wiki/images/Prayer_icon.png'},
+  {key:'magic', icon:'https://oldschool.runescape.wiki/images/Magic_icon.png'},
+  {key:'combat', icon:'https://oldschool.runescape.wiki/images/Combat_icon.png'},
 ];
 
 let playerStats = {};
@@ -165,10 +187,11 @@ async function fetchPlayer(playerName){
     const txt = await res.text();
     const lines = txt.trim().split('\n');
     const stats = {};
-    for(let i=0;i<lines.length && i<SKILLS.length;i++){
+    for(let i=0;i<lines.length;i++){
       const parts = lines[i].split(',');
       if(parts.length!==3) continue;
-      stats[SKILLS[i]] = {
+      const skill = SKILLS.find(s => s.key===SKILLS[i]?.key)?.key || SKILLS[i]?.key;
+      stats[SKILLS[i]?.key || i] = {
         rank: parseInt(parts[0],10),
         level: parseInt(parts[1],10),
         xp: parseInt(parts[2],10)
@@ -195,12 +218,10 @@ function sortPlayers(arr, sortKey, order){
     const sb = playerStats[b.name];
     if(!sa||sa.error) return 1;
     if(!sb||sb.error) return -1;
-
     let va,vb;
     if(sortKey==='total'){ va=sa.overall?.level||0; vb=sb.overall?.level||0; }
     else if(sortKey==='combat'){ va=sa.combat||0; vb=sb.combat||0; }
     else{ va=sa[sortKey]?.level||0; vb=sb[sortKey]?.level||0; }
-
     return order==='asc'? va-vb : vb-va;
   });
 }
@@ -232,7 +253,6 @@ function renderTable(){
     </tr>`;
   }
   tbody.innerHTML=html;
-
   addTooltipEvents();
 }
 
@@ -243,21 +263,23 @@ function addTooltipEvents() {
       const name = td.dataset.player;
       const stats = playerStats[name];
       if (!stats || stats.error) return;
-      let content = '';
-      for (const key of Object.keys(stats)) {
-        if (key === 'combat') { content += `Combat: ${stats[key]}\n`; continue; }
-        const lvl = stats[key]?.level ?? '-';
-        content += `${key.charAt(0).toUpperCase() + key.slice(1)}: ${lvl}\n`;
-      }
-      tooltip.textContent = content;
+
+      let content = `<h4>${name}</h4>`;
+      SKILLS.forEach(skill => {
+        const lvl = stats[skill.key]?.level ?? '-';
+        if(skill.key==='combat') return;
+        content += `<div class="stat-row"><div><img src="${skill.icon}" alt="${skill.key}">${skill.key.charAt(0).toUpperCase()+skill.key.slice(1)}</div><div>${lvl}</div></div>`;
+      });
+      content += `<div class="stat-row"><div><img src="https://oldschool.runescape.wiki/images/Combat_icon.png" alt="Combat">Combat</div><div>${stats.combat}</div></div>`;
+
+      tooltip.innerHTML = content;
       tooltip.style.display = 'block';
+
       const rect = td.getBoundingClientRect();
       tooltip.style.top = (rect.bottom + window.scrollY + 5) + 'px';
       tooltip.style.left = (rect.left + window.scrollX) + 'px';
     });
-    td.addEventListener('mouseleave', e => {
-      tooltip.style.display = 'none';
-    });
+    td.addEventListener('mouseleave', e => { tooltip.style.display='none'; });
   });
 }
 
