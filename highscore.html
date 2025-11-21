@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>OSRS Player Stats Tracker</title>
+<title>Chivalry Legion High Scores</title>
 <style>
 body {
   font-family: Arial, sans-serif;
@@ -19,7 +19,11 @@ body {
   padding: 20px;
   border-radius: 8px;
 }
-h1 { margin-bottom: 20px; color: #fff; }
+h1 {
+  text-align: center;
+  color: orange;
+  margin-bottom: 20px;
+}
 .stats-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
 .stats-table th, .stats-table td { border: 1px solid #444; padding: 8px; text-align: center; }
 .stats-table th { background: #222; font-weight: bold; position: relative; }
@@ -40,21 +44,35 @@ th img.skill-icon { width: 20px; height: 20px; vertical-align: middle; margin-ri
   padding: 10px;
   border-radius: 6px;
   z-index: 1000;
-  max-width: 300px;
+  max-width: 400px;
   display: none;
   font-size: 12px;
 }
 .tooltip img { width:16px; height:16px; vertical-align:middle; margin-right:4px; }
+
 .refresh-btn {
   background:#222; color:#fff; border:1px solid #444; padding:6px 12px; border-radius:4px; cursor:pointer; margin-bottom:10px;
 }
 .refresh-btn:hover { background:#333; }
+
+#tooltipToggle {
+  display:block;
+  margin-bottom:10px;
+  background:#222;
+  color:#fff;
+  border:1px solid #444;
+  padding:6px 12px;
+  border-radius:4px;
+  cursor:pointer;
+}
+#tooltipToggle:hover { background:#333; }
 </style>
 </head>
 <body>
 <div class="container">
-<h1>OSRS Player Stats</h1>
+<h1>Chivalry Legion High Scores</h1>
 <button class="refresh-btn" onclick="loadAllPlayers()">Refresh Stats</button>
+<button id="tooltipToggle">Toggle Tooltip View (Compact / Expanded)</button>
 <table class="stats-table" id="statsTable">
   <thead>
     <tr>
@@ -67,7 +85,7 @@ th img.skill-icon { width: 20px; height: 20px; vertical-align: middle; margin-ri
       <th><img src="https://oldschool.runescape.wiki/images/Prayer_icon.png" class="skill-icon" alt="Prayer">Prayer <span class="sort-icons" data-skill="prayer"><span>▲</span><span>▼</span></span></th>
       <th><img src="https://oldschool.runescape.wiki/images/Hitpoints_icon.png" class="skill-icon" alt="Hitpoints">Hitpoints <span class="sort-icons" data-skill="hitpoints"><span>▲</span><span>▼</span></span></th>
       <th><img src="https://oldschool.runescape.wiki/images/Combat_icon.png" class="skill-icon" alt="Combat">Combat <span class="sort-icons" data-skill="combat"><span>▲</span><span>▼</span></span></th>
-      <th><img src="https://i.imgur.com/3fM9WNL.png" class="skill-icon" alt="Total Level">Total Level <span class="sort-icons" data-skill="total"><span>▲</span><span>▼</span></span></th>
+      <th><img src="https://i.imgur.com/qbJQ7Mc.png" class="skill-icon" alt="Total Level">Total Level <span class="sort-icons" data-skill="total"><span>▲</span><span>▼</span></span></th>
     </tr>
   </thead>
   <tbody id="statsTableBody">
@@ -85,7 +103,7 @@ const PLAYERS = [
 ];
 
 const SKILLS = [
-  { key:'overall', name:'Total Level', icon:'https://i.imgur.com/3fM9WNL.png' },
+  { key:'overall', name:'Total Level', icon:'https://i.imgur.com/qbJQ7Mc.png' },
   { key:'attack', name:'Attack', icon:'https://oldschool.runescape.wiki/images/Attack_icon.png' },
   { key:'defence', name:'Defence', icon:'https://oldschool.runescape.wiki/images/Defence_icon.png' },
   { key:'strength', name:'Strength', icon:'https://oldschool.runescape.wiki/images/Strength_icon.png' },
@@ -113,6 +131,7 @@ const SKILLS = [
 
 let playerStats = {};
 let currentSort = { skill:'total', order:'desc' };
+let tooltipCompact = true;
 
 function calculateCombat(stats) {
   const a = stats.attack?.level || 1;
@@ -134,7 +153,6 @@ async function fetchPlayer(name){
   const urls = [
     `https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=${encodeURIComponent(name)}`,
     `https://api.allorigins.win/raw?url=${encodeURIComponent('https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=' + name)}`
-    // add more mirrors if needed
   ];
 
   for(const url of urls){
@@ -161,7 +179,7 @@ async function fetchPlayer(name){
       console.warn(`Failed ${url}: ${err.message}`);
     }
   }
-  playerStats[name] = { error:true, errorMessage:'All sources failed' };
+  playerStats[name] = { error:true, errorMessage:'name not found' };
 }
 
 async function loadAllPlayers(){
@@ -206,8 +224,11 @@ function renderTable(){
     </tr>`;
   }
   tbody.innerHTML=html;
+  addTooltips();
+}
 
-  // Add hover tooltips
+// Tooltip
+function addTooltips(){
   const tooltip=document.getElementById('tooltip');
   document.querySelectorAll('.player-name').forEach(td=>{
     td.addEventListener('mouseenter',e=>{
@@ -217,13 +238,16 @@ function renderTable(){
       let tipHtml=`<strong style="color:${td.style.color}">${name}</strong><br><table>`;
       SKILLS.forEach(skill=>{
         const data = s[skill.key] || {level:'-', xp:'-', rank:'-'};
-        tipHtml+=`<tr><td><img src="${skill.icon}" alt="${skill.name}">${skill.name}</td><td>Lvl: ${data.level}</td><td>XP: ${data.xp}</td><td>Rank: ${data.rank}</td></tr>`;
+        if(tooltipCompact){
+          tipHtml+=`<tr><td><img src="${skill.icon}" alt="${skill.name}">${skill.name}</td><td>Lvl: ${data.level}</td></tr>`;
+        } else {
+          tipHtml+=`<tr><td><img src="${skill.icon}" alt="${skill.name}">${skill.name}</td><td>Lvl: ${data.level}</td><td>XP: ${data.xp}</td><td>Rank: ${data.rank}</td></tr>`;
+        }
       });
       tipHtml+='</table>';
       tooltip.innerHTML=tipHtml;
       tooltip.style.display='block';
 
-      // Position tooltip inside viewport
       const rect = td.getBoundingClientRect();
       const top = Math.min(window.innerHeight - tooltip.offsetHeight - 10, rect.bottom + window.scrollY);
       const left = Math.min(window.innerWidth - tooltip.offsetWidth - 10, rect.left + window.scrollX);
@@ -240,6 +264,12 @@ document.querySelectorAll('.sort-icons').forEach(icon=>{
   const spans = icon.querySelectorAll('span');
   spans[0].addEventListener('click',()=>{ currentSort={skill,order:'asc'}; renderTable(); });
   spans[1].addEventListener('click',()=>{ currentSort={skill,order:'desc'}; renderTable(); });
+});
+
+// Tooltip toggle
+document.getElementById('tooltipToggle').addEventListener('click',()=>{
+  tooltipCompact = !tooltipCompact;
+  renderTable();
 });
 
 window.addEventListener('load', loadAllPlayers);
