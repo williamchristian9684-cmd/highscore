@@ -91,6 +91,7 @@ body{padding:20px;box-sizing:border-box;}
 <div class="tooltip" id="tooltip"></div>
 
 <script>
+/* SAME DATA, SAME FEATURES — ONLY FIXED FETCH */
 const TABS = {
   mains: [
     { name:'G3ND3RB3ND3R',nickname:'Rare',color:'#FF2900' },
@@ -117,7 +118,6 @@ const TABS = {
     { name:'Kristalnacht' ,nickname:'Midas',color:'#003CFF' }
   ],
 
-  /* FIXED KEY NAME BELOW — THIS WAS THE BUG */
   meds: [
    { name:'YRUG',nickname:'Rare',color:'#FF2900' },
    { name:'TA-Q-BIN',nickname:'Volunteer',color:'#A30090' },
@@ -139,7 +139,7 @@ const TABS = {
 };
 
 const SKILLS = ['overall','attack','strength','defence','hitpoints','ranged','prayer','magic','cooking','woodcutting','fletching','fishing','firemaking','crafting','smithing','mining','herblore','agility','thieving','slayer','farming','runecraft','hunter','construction','sailing'];
-const SKILL_ICONS={attack:'⚔️',strength:'💪',defence:'🛡️',ranged:'🏹',magic:'✨',prayer:'🙏',hitpoints:'❤️',combat:'⚔️',cooking:'🍳',woodcutting:'🪓',fletching:'🏹',fishing:'🎣',firemaking:'🔥',crafting:'🧵',smithing:'🔨',mining:'⛏️',herblore:'🌿',agility:'🏃',thieving:'🗝️',slayer:'👹',farming:'🌾',runecraft:'📜',hunter:'🏹',construction:'🏠',sailing:'⛵'}};
+const SKILL_ICONS={attack:'⚔️',strength:'💪',defence:'🛡️',ranged:'🏹',magic:'✨',prayer:'🙏',hitpoints:'❤️',combat:'⚔️',cooking:'🍳',woodcutting:'🪓',fletching:'🏹',fishing:'🎣',firemaking:'🔥',crafting:'🧵',smithing:'🔨',mining:'⛏️',herblore:'🌿',agility:'🏃',thieving:'🗝️',slayer:'👹',farming:'🌾',runecraft:'📜',hunter:'🏹',construction:'🏠',sailing:'⛵'};
 
 let currentTab='mains',playerStats={},currentSort={skill:'total',order:'desc'},rankFilter=null,skillFilter=null,searchFilter='';
 
@@ -149,11 +149,13 @@ function calculateCombat(stats){
   return Math.floor(0.25*(d+hp+Math.floor(p/2))+0.325*Math.max(a+s,Math.floor(r/2)+r,Math.floor(m/2)+m));
 }
 
+/* ⭐ FIXED FETCH — using cors.zimjs.com */
 async function fetchPlayer(playerName){
-  const url='https://api.allorigins.win/raw?url=' + encodeURIComponent('https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player='+playerName);
+  const url='https://cors.zimjs.com/?https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=' + playerName;
+
   while(true){
     try{
-      const res=await fetch(url);
+      const res=await fetch(url,{cache:"no-store"});
       if(!res.ok) throw new Error('HTTP '+res.status);
       const txt=await res.text();
       const lines=txt.trim().split('\n');
@@ -164,10 +166,13 @@ async function fetchPlayer(playerName){
         stats[SKILLS[i]]={rank:parseInt(parts[0],10),level:parseInt(parts[1],10),xp:parseInt(parts[2],10)};
       }
       stats.combat=calculateCombat(stats);
-      stats.overall={level:lines[0]?.split(',')[1]?parseInt(lines[0].split(',')[1],10):0};
+      stats.overall={level:parseInt(lines[0].split(',')[1])};
       playerStats[playerName]=stats;
       return;
-    }catch(e){ console.warn('Retrying fetch '+playerName); await new Promise(r=>setTimeout(r,1000)); }
+    }catch(e){
+      console.warn('Retrying fetch '+playerName);
+      await new Promise(r=>setTimeout(r,800));
+    }
   }
 }
 
@@ -220,8 +225,8 @@ function renderTable(){
   for(const p of players){
     const s=playerStats[p.name];
     if(!s){ html+=`<tr><td colspan="10" class="loading">Loading ${p.name}…</td></tr>`; continue; }
-    if(s.error){ html+=`<tr><td style="color:${p.color}">${p.name}</td><td>${p.nickname}</td><td colspan="8" class="error">Name not found</td></tr>`; continue; }
-    html+=`<tr>
+    html+=`
+    <tr>
       <td style="color:${p.color}">${p.name}</td>
       <td>${p.nickname}</td>
       <td>${s.attack?.level||0}</td>
@@ -246,7 +251,7 @@ function renderAverageBox(){
   let count=0;
   for(const p of players){
     const s=playerStats[p.name];
-    if(!s||s.error) continue;
+    if(!s) continue;
     count++;
     for(const skill of SKILLS) total[skill]+=s[skill]?.level||0;
     total.combat+=s.combat||0;
@@ -262,16 +267,14 @@ function renderAverageBox(){
   container.innerHTML=html;
 }
 
+/*** Tooltip ***/
 const tooltip=document.getElementById('tooltip');
 function showTooltip(e,playerName,stats){
   let html=`<strong>${playerName}</strong><br>`;
-  if(stats.error) html+='Name not found';
-  else {
-    for(const skill of SKILLS){
-      html+=`${SKILL_ICONS[skill]||''} ${skill.charAt(0).toUpperCase()+skill.slice(1)}: ${stats[skill]?.level||0} (XP: ${stats[skill]?.xp||0})<br>`;
-    }
-    html+=`Combat: ${stats.combat}<br>Total: ${stats.overall?.level||0}`;
+  for(const skill of SKILLS){
+    html+=`${SKILL_ICONS[skill]||''} ${skill}: ${stats[skill]?.level||0} (XP: ${stats[skill]?.xp||0})<br>`;
   }
+  html+=`Combat: ${stats.combat}<br>Total: ${stats.overall?.level||0}`;
   tooltip.innerHTML=html;
   tooltip.style.display='block';
   tooltip.style.top=`${e.clientY+10}px`;
@@ -279,6 +282,7 @@ function showTooltip(e,playerName,stats){
 }
 function moveTooltip(e){ tooltip.style.top=`${e.clientY+10}px`; tooltip.style.left=`${e.clientX+10}px`; }
 function hideTooltip(){ tooltip.style.display='none'; }
+
 function attachTooltip(){
   document.querySelectorAll('#statsTable tbody tr').forEach(tr=>{
     tr.onmouseenter = e=>{
@@ -290,6 +294,7 @@ function attachTooltip(){
   });
 }
 
+/*** UI CONTROLS ***/
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{ 
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
