@@ -2,282 +2,425 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>OSRS Clan Stats</title>
+<title>Chivalry Legion High Scores</title>
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        background: #1b1b1b;
-        color: #e6e6e6;
-        margin: 0;
-        padding: 20px;
-    }
-    h1 {
-        text-align: center;
-        margin-top: 10px;
-        color: #ffd76b;
-    }
-    #progress {
-        text-align: center;
-        margin: 15px 0;
-        font-size: 18px;
-    }
-    .container {
-        max-width: 1200px;
-        margin: auto;
-    }
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-        font-size: 14px;
-        background: #262626;
-    }
-    th, td {
-        border: 1px solid #333;
-        padding: 8px;
-        text-align: center;
-    }
-    th {
-        background: #333;
-        position: sticky;
-        top: 0;
-        z-index: 2;
-    }
-    .error {
-        color: #ff6b6b;
-        font-weight: bold;
-    }
-    .success {
-        color: #90ee90;
-    }
-    #retryBtn {
-        display: block;
-        margin: 15px auto;
-        padding: 10px 20px;
-        background: #444;
-        color: #fff;
-        border: none;
-        cursor: pointer;
-        font-size: 16px;
-        border-radius: 5px;
-    }
-    #retryBtn:hover {
-        background: #555;
-    }
+html,body{height:100%;margin:0;padding:0;background:#000;color:#fff;font-family:Arial,sans-serif;}
+body{padding:20px;box-sizing:border-box;}
+.tabs { display:flex; justify-content:center; gap:5px; margin-bottom:15px; }
+.tab-btn { padding:8px 15px; background:#111; border:none; color:#fff; cursor:pointer; border-radius:5px; }
+.tab-btn.active { background:orange; color:#000; font-weight:bold; }
+.container { display:flex; gap:15px; max-width:1600px; margin:0 auto; min-height:calc(100vh - 200px); }
+.column { background:#111; border-radius:8px; padding:15px; border:1px solid #444; overflow-x:auto; }
+.column h2 { text-align:center; color:orange; margin-bottom:10px; }
+.stats-table { width:100%; border-collapse:collapse; }
+.stats-table th, .stats-table td { border:1px solid #444; padding:8px; text-align:center; }
+.stats-table th { background:#222; font-weight:bold; color:#fff; cursor:pointer; }
+.stats-table td { background:#111; color:#eee; }
+.stats-table tr:nth-child(even) td { background:#1a1a1a; }
+.stats-table tbody tr:hover { background:#333 !important; }
+.player-name { font-weight:bold; cursor:pointer; }
+.tooltip { display:none; position:fixed; background:#222; padding:10px; border-radius:6px; box-shadow:0 0 10px rgba(255,255,255,0.3); z-index:999; min-width:220px; max-height:400px; overflow-y:auto; color:#fff; font-size:12px; white-space:nowrap; }
+.legend-box { width:180px; }
+.legend-box div { font-weight:bold; margin:5px 0; cursor:pointer; }
+.loading { text-align:center; font-style:italic; color:#999; }
+.error { color:#ff4d4d; font-weight:bold; }
+.refresh-btn { display:block; margin:10px auto 20px auto; padding:5px 10px; background:orange; color:#000; font-weight:bold; border:none; border-radius:5px; cursor:pointer; }
+#lastUpdated { text-align:center; font-size:12px; color:#aaa; margin-top:10px; }
+#searchBar { display:block; margin:0 auto 15px auto; padding:5px 10px; width:300px; border-radius:5px; border:none; }
+#progress { text-align:center; margin:10px; font-size:14px; color:#ccc; }
 </style>
 </head>
 <body>
 
-<h1>OSRS Clan Stats</h1>
+<img id="clanLogo" src="https://i.imgur.com/OU2IAhu.png" alt="Clan Logo" style="display:block;margin:0 auto 10px auto; max-width:150px;cursor:pointer;">
 
-<div id="progress">Loading…</div>
+<input type="text" id="searchBar" placeholder="Search by Name or Nickname">
 
-<button id="retryBtn" style="display:none;">Retry Failed Players</button>
+<div id="progress"></div>
 
-<div class="container">
-    <table id="statsTable"></table>
+<div class="tabs">
+  <button class="tab-btn active" data-tab="mains">Mains</button>
+  <button class="tab-btn" data-tab="meds">Meds and Pures</button>
+  <button class="tab-btn" data-tab="ironman">Ironman</button>
+  <button class="tab-btn" data-tab="hcim">HCIM</button>
+  <button class="tab-btn" data-tab="uim">UIM</button>
 </div>
 
+<div class="container">
+  <div class="column legend-box" id="ranksLegend">
+    <h2>Ranks Legend</h2>
+    <div style="color:#FF2900;" data-color="#FF2900">Leader</div>
+    <div style="color:#FF00E1;" data-color="#FF00E1">Council</div>
+    <div style="color:#00FF91;" data-color="#00FF91">Captain</div>
+    <div style="color:#FFF12E;" data-color="#FFF12E">Legend</div>
+    <div style="color:#ADA653;" data-color="#ADA653">Elder</div>
+    <div style="color:#A30090;" data-color="#A30090">Old School</div>
+    <div style="color:#0E00A3;" data-color="#0E00A3">Senior</div>
+    <div style="color:#003CFF;" data-color="#003CFF">Member</div>
+    <div style="color:#00BFFF;" data-color="#00BFFF">Trial</div>
+    <div style="color:#B6B6B6;" data-color="#B6B6B6">Retired</div>
+    <button class="refresh-btn" id="unfilterRankBtn">Unfilter</button>
+  </div>
+
+  <div class="column" style="flex:1;">
+    <table class="stats-table" id="statsTable">
+      <thead>
+        <tr>
+          <th data-sort="name">Name</th>
+          <th data-sort="nickname">Nickname</th>
+          <th data-sort="attack">Attack</th>
+          <th data-sort="strength">Strength</th>
+          <th data-sort="defence">Defence</th>
+          <th data-sort="ranged">Ranged</th>
+          <th data-sort="magic">Magic</th>
+          <th data-sort="prayer">Prayer</th>
+          <th data-sort="combat">Combat</th>
+          <th data-sort="total">Total</th>
+        </tr>
+      </thead>
+      <tbody id="statsTableBody">
+        <tr><td colspan="10" class="loading">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="column" style="width:250px;">
+    <h2>Average Stats</h2>
+    <div id="averageContent">Loading...</div>
+    <button class="refresh-btn" id="unfilterSkillBtn">Unfilter</button>
+  </div>
+</div>
+
+<div id="lastUpdated"></div>
+<div class="tooltip" id="tooltip"></div>
+
 <script>
-/* -----------------------------------------------------------
-   CONFIG
------------------------------------------------------------ */
+/* ----------------------------------------------------
+   YOUR ORIGINAL PLAYER DATA (RESTORED)
+---------------------------------------------------- */
+const TABS = {
+  mains: [
+    { name:'G3ND3RB3ND3R',nickname:'Rare',color:'#FF2900' },
+    { name:'Big Mac luvr',nickname:'Braden',color:'#FF2900' },
+    { name:'Bonds',nickname:'Gage',color:'#FF2900' },
+    { name:'Kanger0o',nickname:'Karate',color:'#FF2900' },
+    { name:'777 Hit Man',nickname:'Uube',color:'#FF00E1' },
+    { name:'ForeskinKim',nickname:'JPS',color:'#FF00E1' },
+    { name:'AEST NFS',nickname:'Kaylpso',color:'#00FF91' },
+    { name:'I take off',nickname:'Buff',color:'#00FF91' },
+    { name:'b udsy',nickname:'Budsy',color:'#00FF91' },
+    { name:'Roo Rider',nickname:'Joog',color:'#FFF12E' },
+    { name:'Purewax',nickname:'Wax',color:'#ADA653' },
+    { name:'Infidel',nickname:'Infidel',color:'#ADA653' },
+    { name:'Cutyourgrass',nickname:'Cutty',color:'#A30090' },
+    { name:'Volunteer',nickname:'Volunteer',color:'#A30090' },
+    { name:'cwazi',nickname:'Stally',color:'#A30090' },
+    { name:'JoshD',nickname:'JoshD',color:'#A30090' },
+    { name:'Wut Da Hally',nickname:'Pizza',color:'#0E00A3' },
+    { name:'NZ Apho',nickname:'Apho',color:'#003CFF' },
+    { name:'Arty Knight',nickname:'Dawson',color:'#003CFF' },
+    { name:'CHLEFY',nickname:'Chief',color:'#003CFF' },
+    { name:'K21',nickname:'Chief',color:'#003CFF' },
+    { name:'Kristalnacht',nickname:'Midas',color:'#003CFF' }
+  ],
+  meds: [
+    { name:'YRUG',nickname:'Rare',color:'#FF2900' },
+    { name:'TA-Q-BIN',nickname:'Volunteer',color:'#A30090' },
+    { name:'Stiffysniffa',nickname:'Infidel',color:'#ADA653' },
+    { name:'I screw off',nickname:'Buff',color:'#00FF91' },
+    { name:'alehouse',nickname:'Stally',color:'#A30090' }
+  ],
+  ironman:[
+    { name:'Iron Hayden',nickname:'Hayden',color:'#00FF91' },
+    { name:'Big Shame',nickname:'Buff',color:'#00FF91' }
+  ],
+  hcim:[ { name:'HCWarrior',nickname:'HCW',color:'#ADA653' } ],
+  uim:[ { name:'UltimateU',nickname:'UU',color:'#A30090' } ]
+};
 
-const SKILLS = [
-  "overall","attack","defence","strength","hitpoints","ranged","prayer",
-  "magic","cooking","woodcutting","fletching","fishing","firemaking",
-  "crafting","smithing","mining","herblore","agility","thieving","slayer",
-  "farming","runecraft","hunter","construction"
-];
+/* ----------------------------------------------------
+   SKILLS + ICONS
+---------------------------------------------------- */
+const SKILLS = ['overall','attack','strength','defence','hitpoints','ranged','prayer','magic',
+  'cooking','woodcutting','fletching','fishing','firemaking','crafting','smithing','mining',
+  'herblore','agility','thieving','slayer','farming','runecraft','hunter','construction','sailing'];
 
-// --- ADD YOUR PLAYERS HERE ---
-const PLAYERS = [
-  { name: "Zezima", color: "#ffd700" },
-  { name: "Lynx Titan", color: "#7fe7ff" },
-  { name: "Settled", color: "#ffae7f" }
-];
+const SKILL_ICONS={attack:'⚔️',strength:'💪',defence:'🛡️',ranged:'🏹',magic:'✨',prayer:'🙏',
+hitpoints:'❤️',combat:'⚔️',cooking:'🍳',woodcutting:'🪓',fletching:'🏹',fishing:'🎣',
+firemaking:'🔥',crafting:'🧵',smithing:'🔨',mining:'⛏️',herblore:'🌿',agility:'🏃',
+thieving:'🗝️',slayer:'👹',farming:'🌾',runecraft:'📜',hunter:'🏹',construction:'🏠',sailing:'⛵'};
 
-let playerStats = {};
+/* ----------------------------------------------------
+   STATE
+---------------------------------------------------- */
+let currentTab='mains',playerStats={},currentSort={skill:'total',order:'desc'},rankFilter=null,skillFilter=null,searchFilter='';
 
-/* -----------------------------------------------------------
-   RELIABLE HISCORE FETCH SYSTEM
-   - infinite retries
-   - timeout
-   - proxy rotation
-   - validation
-   - exponential backoff
------------------------------------------------------------ */
+/* ----------------------------------------------------
+   COMBAT FORMULA
+---------------------------------------------------- */
+function calculateCombat(s){
+  const a=s.attack?.level||1, str=s.strength?.level||1, d=s.defence?.level||1,
+        hp=s.hitpoints?.level||10, p=s.prayer?.level||1,
+        r=s.ranged?.level||1, m=s.magic?.level||1;
 
-const PROXIES = [
-  u => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
-  u => "https://cors.zimjs.com/?url=" + encodeURIComponent(u),
-  u => "https://thingproxy.freeboard.io/fetch/" + u
-];
-
-async function fetchWithTimeout(url, timeout = 15000) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-  try {
-    return await fetch(url, { signal: controller.signal });
-  } finally {
-    clearTimeout(id);
-  }
+  return Math.floor(0.25*(d+hp+Math.floor(p/2)) + 0.325*Math.max(a+str, Math.floor(r/2)+r, Math.floor(m/2)+m));
 }
 
-async function fetchPlayer(playerName) {
-  const hiscoreUrl =
-    "https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=" +
-    encodeURIComponent(playerName);
+/* ----------------------------------------------------
+   BULLETPROOF FETCH (infinite retries + proxy rotation)
+---------------------------------------------------- */
+const PROXIES=[
+  u=>"https://api.allorigins.win/raw?url="+encodeURIComponent(u),
+  u=>"https://cors.zimjs.com/?url="+encodeURIComponent(u),
+  u=>"https://thingproxy.freeboard.io/fetch/"+u
+];
 
-  let attempt = 0;
+async function fetchWithTimeout(url, timeout=15000){
+  const controller=new AbortController();
+  const id=setTimeout(()=>controller.abort(),timeout);
+  try{ return await fetch(url,{signal:controller.signal}); }
+  finally{ clearTimeout(id); }
+}
 
-  while (true) {
-    const proxy = PROXIES[attempt % PROXIES.length];
-    const finalUrl = proxy(hiscoreUrl);
+async function fetchPlayer(playerName){
+  const hiscoreUrl="https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player="+encodeURIComponent(playerName);
+  let attempt=0;
 
-    try {
-      console.log(`Fetching ${playerName} using proxy #${attempt % PROXIES.length + 1}`);
+  while(true){
+    const proxy=PROXIES[attempt % PROXIES.length];
+    const finalUrl=proxy(hiscoreUrl);
 
-      const res = await fetchWithTimeout(finalUrl, 15000);
-      if (!res.ok) throw new Error("HTTP " + res.status);
+    try{
+      const res=await fetchWithTimeout(finalUrl,15000);
+      if(!res.ok) throw new Error(res.status);
 
-      const text = await res.text();
+      const txt=await res.text();
+      const lines=txt.trim().split("\n");
+      if(!lines[0].includes(",")) throw new Error("Bad data");
 
-      // Validate format
-      const lines = text.trim().split("\n");
-      if (lines.length < 5 || !lines[0].includes(",")) {
-        throw new Error("Invalid hiscore format");
+      const stats={};
+      for(let i=0;i<lines.length && i<SKILLS.length;i++){
+        const [rank,level,xp]=lines[i].split(",");
+        stats[SKILLS[i]]={rank:+rank,level:+level,xp:+xp};
       }
 
-      // Parse stats
-      const stats = {};
-      for (let i = 0; i < SKILLS.length; i++) {
-        const [rank, level, xp] = lines[i].split(",");
-        stats[SKILLS[i]] = {
-          rank: Number(rank),
-          level: Number(level),
-          xp: Number(xp)
-        };
-      }
-
-      stats.combat = calculateCombat(stats);
-      playerStats[playerName] = stats;
+      stats.combat=calculateCombat(stats);
+      stats.overall={level:+lines[0].split(",")[1]};
+      playerStats[playerName]=stats;
       return;
 
-    } catch (err) {
-      console.warn(`Attempt failed for ${playerName}:`, err);
-
-      // Slow exponential backoff
-      const delay = Math.min(500 * Math.pow(1.5, attempt), 8000);
-      await new Promise(r => setTimeout(r, delay));
-
+    }catch(e){
+      const backoff=Math.min(8000,500*Math.pow(1.4,attempt));
+      await new Promise(r=>setTimeout(r,backoff));
       attempt++;
     }
   }
 }
 
-/* -----------------------------------------------------------
-   COMBAT CALCULATION
------------------------------------------------------------ */
-function calculateCombat(s) {
-  const def = s.defence.level;
-  const hp = s.hitpoints.level;
-  const pray = s.prayer.level;
-  const atk = s.attack.level;
-  const str = s.strength.level;
-  const rng = s.ranged.level;
-  const mag = s.magic.level;
+/* ----------------------------------------------------
+   TAB LOADING
+---------------------------------------------------- */
+async function loadTab(tab){
+  currentTab=tab;
+  playerStats={};
+  document.getElementById("statsTableBody").innerHTML=`<tr><td colspan="10" class="loading">Loading...</td></tr>`;
+  document.getElementById("averageContent").innerHTML="Loading...";
+  document.getElementById("progress").textContent="Fetching player stats...";
 
-  return Math.floor(
-    0.25 * (def + hp + Math.floor(pray / 2)) +
-    0.325 * Math.max(
-      atk + str,
-      Math.floor((rng * 1.5)),
-      Math.floor((mag * 1.5))
-    )
-  );
-}
+  const players=TABS[tab];
+  let done=0;
 
-/* -----------------------------------------------------------
-   TABLE RENDERING
------------------------------------------------------------ */
-
-function renderTable() {
-  let html = `
-    <tr>
-      <th>Name</th>
-      <th>Combat</th>
-      <th>Overall</th>
-      ${SKILLS.slice(1).map(s => `<th>${s}</th>`).join("")}
-    </tr>
-  `;
-
-  for (const p of PLAYERS) {
-    const s = playerStats[p.name];
-
-    if (!s) {
-      html += `
-        <tr>
-          <td style="color:${p.color}">${p.name}</td>
-          <td colspan="${SKILLS.length}" class="error">Loading…</td>
-        </tr>
-      `;
-      continue;
-    }
-
-    const error = s.error;
-
-    if (error) {
-      html += `
-        <tr>
-          <td style="color:${p.color}">${p.name}</td>
-          <td colspan="${SKILLS.length}" class="error">Failed (Click Retry)</td>
-        </tr>
-      `;
-      continue;
-    }
-
-    html += `
-      <tr>
-        <td style="color:${p.color}">${p.name}</td>
-        <td>${s.combat}</td>
-        <td>${s.overall.level}</td>
-        ${SKILLS.slice(1).map(skill => `<td>${s[skill].level}</td>`).join("")}
-      </tr>
-    `;
-  }
-
-  document.getElementById("statsTable").innerHTML = html;
-}
-
-/* -----------------------------------------------------------
-   LOADING CONTROL
------------------------------------------------------------ */
-
-async function loadAllPlayers() {
-  let loaded = 0;
-  document.getElementById("retryBtn").style.display = "none";
-
-  for (const p of PLAYERS) {
+  for(const p of players){
     await fetchPlayer(p.name);
-    loaded++;
-    document.getElementById("progress").innerText =
-      `Loaded ${loaded} / ${PLAYERS.length} players...`;
+    done++;
+    document.getElementById("progress").textContent=`Loaded ${done}/${players.length}`;
     renderTable();
   }
 
-  document.getElementById("progress").innerText = "All players loaded.";
+  document.getElementById("progress").textContent="";
+  renderTable();
+  renderAverageBox();
+  document.getElementById("lastUpdated").textContent="Last updated: "+new Date().toLocaleString();
 }
 
-document.getElementById("retryBtn").onclick = () => {
-  const failed = PLAYERS.filter(p => playerStats[p.name]?.error);
-  if (failed.length === 0) return;
+/* ----------------------------------------------------
+   SORT + FILTERS + TABLE RENDER (unchanged from your original)
+---------------------------------------------------- */
+function sortPlayers(arr,key,order){
+  return arr.slice().sort((a,b)=>{
+    const sa=playerStats[a.name], sb=playerStats[b.name];
+    if(!sa) return 1; if(!sb) return -1;
 
-  failed.forEach(p => delete playerStats[p.name]);
-  loadAllPlayers();
-};
+    if(key==="name"||key==="nickname")
+      return order==='asc'? a[key].localeCompare(b[key]):b[key].localeCompare(a[key]);
 
-loadAllPlayers();
+    const va=(key==="total"?sa.overall.level:key==="combat"?sa.combat:sa[key]?.level)||0;
+    const vb=(key==="total"?sb.overall.level:key==="combat"?sb.combat:sb[key]?.level)||0;
+
+    return order==='asc'? va-vb : vb-va;
+  });
+}
+
+function renderTable(){
+  const tbody=document.getElementById("statsTableBody");
+  let players=TABS[currentTab];
+
+  if(rankFilter) players = players.filter(p=>p.color===rankFilter);
+  if(searchFilter) players = players.filter(p =>
+      p.name.toLowerCase().includes(searchFilter) ||
+      p.nickname.toLowerCase().includes(searchFilter)
+  );
+
+  if(skillFilter){
+    players=players.map(p=>({...p,skillStat:playerStats[p.name][skillFilter]}))
+                   .filter(p=>p.skillStat)
+                   .sort((a,b)=>b.skillStat.xp-a.skillStat.xp);
+
+    tbody.innerHTML=players.map(p=>{
+      const s=p.skillStat;
+      return `
+        <tr>
+          <td style="color:${p.color}">${p.name}</td>
+          <td>${p.nickname}</td>
+          <td colspan="8">${s.level} (XP: ${s.xp})</td>
+        </tr>`;
+    }).join("");
+
+    attachTooltip();
+    return;
+  }
+
+  players=sortPlayers(players,currentSort.skill,currentSort.order);
+
+  let html="";
+  for(const p of players){
+    const s=playerStats[p.name];
+
+    if(!s){
+      html+=`<tr><td style="color:${p.color}">${p.name}</td><td colspan="9" class="loading">Loading…</td></tr>`;
+      continue;
+    }
+
+    html+=`
+      <tr>
+        <td style="color:${p.color}">${p.name}</td>
+        <td>${p.nickname}</td>
+        <td>${s.attack.level}</td>
+        <td>${s.strength.level}</td>
+        <td>${s.defence.level}</td>
+        <td>${s.ranged.level}</td>
+        <td>${s.magic.level}</td>
+        <td>${s.prayer.level}</td>
+        <td>${s.combat}</td>
+        <td>${s.overall.level}</td>
+      </tr>`;
+  }
+  tbody.innerHTML=html;
+  attachTooltip();
+}
+
+function renderAverageBox(){
+  const container=document.getElementById("averageContent");
+  const players=TABS[currentTab];
+  const total={};
+  for(const s of SKILLS.concat(['combat','total'])) total[s]=0;
+  let count=0;
+
+  for(const p of players){
+    const s=playerStats[p.name];
+    if(!s) continue;
+    count++;
+    for(const skill of SKILLS) total[skill]+=s[skill]?.level||0;
+    total.combat+=s.combat||0;
+    total.total+=s.overall.level;
+  }
+
+  let html="";
+  for(const skill of SKILLS){
+    const avg=count?Math.round(total[skill]/count):0;
+    html+=`<div style="cursor:pointer;" onclick="skillFilter='${skill}';renderTable();">${SKILL_ICONS[skill]||''} ${skill}: ${avg}</div>`;
+  }
+
+  html+=`<div>Average Combat: ${count?Math.round(total.combat/count):0}</div>`;
+  html+=`<div>Average Total: ${count?Math.round(total.total/count):0}</div>`;
+
+  container.innerHTML=html;
+}
+
+/* ----------------------------------------------------
+   TOOLTIP SYSTEM
+---------------------------------------------------- */
+const tooltip=document.getElementById('tooltip');
+
+function showTooltip(e,name,stats){
+  let html=`<strong>${name}</strong><br>`;
+  for(const skill of SKILLS){
+    html+=`${SKILL_ICONS[skill]||''} ${skill}: ${stats[skill]?.level||0} (XP: ${stats[skill]?.xp||0})<br>`;
+  }
+  html+=`Combat: ${stats.combat}<br>Total: ${stats.overall.level}`;
+  tooltip.innerHTML=html;
+  tooltip.style.display='block';
+  tooltip.style.top=(e.clientY+10)+'px';
+  tooltip.style.left=(e.clientX+10)+'px';
+}
+
+function moveTooltip(e){
+  tooltip.style.top=(e.clientY+10)+'px';
+  tooltip.style.left=(e.clientX+10)+'px';
+}
+
+function hideTooltip(){
+  tooltip.style.display='none';
+}
+
+function attachTooltip(){
+  document.querySelectorAll('#statsTable tbody tr').forEach(tr=>{
+    const name=tr.children[0]?.textContent;
+    if(!name || !playerStats[name]) return;
+
+    tr.onmouseenter = e=>showTooltip(e,name,playerStats[name]);
+    tr.onmousemove = moveTooltip;
+    tr.onmouseleave = hideTooltip;
+  });
+}
+
+/* ----------------------------------------------------
+   UI BINDINGS
+---------------------------------------------------- */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    loadTab(btn.dataset.tab);
+  });
+});
+
+document.querySelectorAll('th').forEach(th=>{
+  th.addEventListener('click',()=>{
+    const key=th.dataset.sort;
+    if(currentSort.skill===key)
+      currentSort.order=currentSort.order==='asc'?'desc':'asc';
+    else {
+      currentSort.skill=key;
+      currentSort.order='desc';
+    }
+    renderTable();
+  });
+});
+
+document.querySelectorAll('#ranksLegend div[data-color]').forEach(div=>{
+  div.addEventListener('click',()=>{
+    rankFilter=div.dataset.color;
+    renderTable();
+  });
+});
+
+document.getElementById("unfilterRankBtn").onclick=()=>{ rankFilter=null; renderTable(); };
+document.getElementById("unfilterSkillBtn").onclick=()=>{ skillFilter=null; renderTable(); };
+document.getElementById("searchBar").oninput=e=>{ searchFilter=e.target.value.toLowerCase(); renderTable(); };
+document.getElementById("clanLogo").onclick=()=>loadTab(currentTab);
+
+window.addEventListener("load",()=>loadTab("mains"));
 </script>
 
 </body>
