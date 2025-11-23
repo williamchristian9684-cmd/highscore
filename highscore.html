@@ -116,13 +116,16 @@ const TABS = {
     { name:'K21' ,nickname:'Chief',color:'#003CFF' }, 
     { name:'Kristalnacht' ,nickname:'Midas',color:'#003CFF' }
   ],
-  meds and pures:[
+
+  /* FIXED KEY NAME BELOW — THIS WAS THE BUG */
+  meds: [
    { name:'YRUG',nickname:'Rare',color:'#FF2900' },
    { name:'TA-Q-BIN',nickname:'Volunteer',color:'#A30090' },
    { name:'Stiffysniffa' ,nickname:'Infidel',color:'#ADA653' },
-  { name:'I screw off',nickname:'Buff',color:'#00FF91' },
+   { name:'I screw off',nickname:'Buff',color:'#00FF91' },
    { name:'alehouse',nickname:'Stally',color:'#A30090' }
   ],
+
   ironman:[
     { name:'Iron Hayden',nickname:'Hayden',color:'#00FF91' },
     { name:'Big Shame' ,nickname:'Buff',color:'#00FF91' }
@@ -136,7 +139,7 @@ const TABS = {
 };
 
 const SKILLS = ['overall','attack','strength','defence','hitpoints','ranged','prayer','magic','cooking','woodcutting','fletching','fishing','firemaking','crafting','smithing','mining','herblore','agility','thieving','slayer','farming','runecraft','hunter','construction','sailing'];
-const SKILL_ICONS={attack:'⚔️',strength:'💪',defence:'🛡️',ranged:'🏹',magic:'✨',prayer:'🙏',hitpoints:'❤️',combat:'⚔️',cooking:'🍳',woodcutting:'🪓',fletching:'🏹',fishing:'🎣',firemaking:'🔥',crafting:'🧵',smithing:'🔨',mining:'⛏️',herblore:'🌿',agility:'🏃',thieving:'🗝️',slayer:'👹',farming:'🌾',runecraft:'📜',hunter:'🏹',construction:'🏠',sailing:'⛵'};
+const SKILL_ICONS={attack:'⚔️',strength:'💪',defence:'🛡️',ranged:'🏹',magic:'✨',prayer:'🙏',hitpoints:'❤️',combat:'⚔️',cooking:'🍳',woodcutting:'🪓',fletching:'🏹',fishing:'🎣',firemaking:'🔥',crafting:'🧵',smithing:'🔨',mining:'⛏️',herblore:'🌿',agility:'🏃',thieving:'🗝️',slayer:'👹',farming:'🌾',runecraft:'📜',hunter:'🏹',construction:'🏠',sailing:'⛵'}};
 
 let currentTab='mains',playerStats={},currentSort={skill:'total',order:'desc'},rankFilter=null,skillFilter=null,searchFilter='';
 
@@ -287,7 +290,6 @@ function attachTooltip(){
   });
 }
 
-// Event listeners
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{ 
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
@@ -319,18 +321,3 @@ window.addEventListener('load',()=>loadTab('mains'));
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
